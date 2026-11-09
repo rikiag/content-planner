@@ -1,0 +1,178 @@
+@import "tailwindcss";
+
+@source "../../src";
+@source "../../public/assets/app.js";
+
+/* Dark mode: `.dark` class on <html>, managed by app.js (device preference + localStorage) */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@font-face {
+  font-family: "Plus Jakarta Sans";
+  src: url("fonts/plus-jakarta-sans-latin-ext-wght-normal.woff2") format("woff2");
+  font-weight: 200 800;
+  font-display: swap;
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: "Plus Jakarta Sans";
+  src: url("fonts/plus-jakarta-sans-latin-wght-normal.woff2") format("woff2");
+  font-weight: 200 800;
+  font-display: swap;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+/* ---------- Color tokens (light) ---------- */
+:root {
+  color-scheme: light;
+  --c-bg: #e6eefc;
+  --c-bg2: #f5f8ff;
+  --c-surface: #ffffff;
+  --c-soft: #e3ecff;
+  --c-soft2: #eef3ff;
+  --c-ink: #0e1d3b;
+  --c-muted: #5b6a86;
+  --c-line: #d9e3f5;
+  --c-hero: #0f2a57;
+  --c-hero2: #1b3f7a;
+  --c-brand: #2563eb;
+  --c-brand-soft: #dbe8ff;
+  --c-accent: #c2410c;
+  --c-accent-soft: #ffe7da;
+  --c-note: #fff0b3;
+  --c-note-ink: #5a4708;
+  --c-head-a: #2160d6;
+  --c-head-b: #7fb3ff;
+  --c-peach: #fde6da;
+  --c-track: #dbe4f4;
+}
+
+/* ---------- Color tokens (dark) ---------- */
+.dark {
+  color-scheme: dark;
+  --c-bg: #0a1120;
+  --c-bg2: #0d1628;
+  --c-surface: #131d31;
+  --c-soft: #1a2845;
+  --c-soft2: #17233b;
+  --c-ink: #e8eefb;
+  --c-muted: #93a1bd;
+  --c-line: #25324d;
+  --c-hero: #12306a;
+  --c-hero2: #0c1d44;
+  --c-brand: #5b95ff;
+  --c-brand-soft: #1c2f57;
+  --c-accent: #ea6a2f;
+  --c-accent-soft: #3a2218;
+  --c-note: #3b3315;
+  --c-note-ink: #f3e3a3;
+  --c-head-a: #12306a;
+  --c-head-b: #1f4a9a;
+  --c-peach: #2b1f1b;
+  --c-track: #233250;
+}
+
+@theme inline {
+  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --color-page: var(--c-bg);
+  --color-surface: var(--c-surface);
+  --color-soft: var(--c-soft);
+  --color-soft2: var(--c-soft2);
+  --color-ink: var(--c-ink);
+  --color-muted: var(--c-muted);
+  --color-line: var(--c-line);
+  --color-hero: var(--c-hero);
+  --color-hero2: var(--c-hero2);
+  --color-brand: var(--c-brand);
+  --color-brandsoft: var(--c-brand-soft);
+  --color-accent: var(--c-accent);
+  --color-accentsoft: var(--c-accent-soft);
+  --color-note: var(--c-note);
+  --color-noteink: var(--c-note-ink);
+  --color-peach: var(--c-peach);
+  --color-track: var(--c-track);
+  --shadow-card: 0 1px 2px rgb(15 42 87 / 0.06), 0 8px 24px -12px rgb(15 42 87 / 0.18);
+}
+
+@layer base {
+  html { -webkit-tap-highlight-color: transparent; scroll-behavior: smooth; }
+  body {
+    @apply font-sans text-ink antialiased;
+    min-height: 100dvh;
+    background: linear-gradient(180deg, var(--c-bg) 0%, var(--c-bg2) 60%, var(--c-bg) 100%) fixed;
+  }
+  ::selection { background: var(--c-brand); color: #fff; }
+  button, [role="button"], a, select, summary { cursor: pointer; }
+  :focus-visible { outline: 2px solid var(--c-brand); outline-offset: 2px; }
+  input, select, textarea { font: inherit; }
+}
+
+/* Base button utility for variants below */
+@utility btn {
+  @apply inline-flex items-center justify-center gap-2 rounded-full px-4 py-2.5 text-sm font-semibold
+    transition active:scale-[.97] disabled:opacity-50;
+}
+
+@layer components {
+  .card { @apply rounded-3xl bg-surface shadow-card; }
+  .btn-primary { @apply btn bg-brand text-white shadow-sm hover:brightness-110; }
+  .btn-dark { @apply btn bg-hero text-white hover:brightness-125; }
+  .btn-soft { @apply btn bg-soft text-ink hover:brightness-95; }
+  .btn-ghost { @apply btn border border-line bg-surface text-ink hover:bg-soft; }
+  .btn-danger { @apply btn bg-rose-600 text-white hover:brightness-110; }
+  .icon-btn {
+    @apply inline-grid size-10 shrink-0 place-items-center rounded-xl text-white/90 transition
+      bg-white/15 hover:bg-white/25 active:scale-95;
+  }
+  .input {
+    @apply w-full rounded-2xl border border-line bg-surface px-3.5 py-2.5 text-sm text-ink
+      placeholder:text-muted/70 transition focus:border-brand focus:outline-none focus:ring-4 focus:ring-brand/15;
+  }
+  /* Custom select chevron for consistent cross-browser rendering */
+  select.input {
+    -webkit-appearance: none;
+    appearance: none;
+    padding-right: 2.5rem;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235b6a86' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.85rem center;
+    background-size: 1.05rem;
+    text-overflow: ellipsis;
+  }
+  .dark select.input {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2393a1bd' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  }
+  input[type="date"].input, input[type="datetime-local"].input {
+    -webkit-appearance: none; appearance: none; display: block; min-height: 2.6rem; text-align: left;
+  }
+  .label { @apply mb-1.5 block text-xs font-semibold text-muted; }
+  .chip { @apply inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold leading-none; }
+  .pill {
+    @apply inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-line bg-surface px-3.5 py-2
+      text-xs font-semibold text-muted transition hover:text-ink;
+  }
+  .pill[aria-current="true"] { @apply border-transparent bg-hero text-white; }
+  .nav-link {
+    @apply flex items-center gap-3 rounded-2xl px-3.5 py-2.5 text-sm font-semibold text-muted transition hover:bg-soft hover:text-ink;
+  }
+  .nav-link[aria-current="page"] { @apply bg-hero text-white shadow-md; }
+  .section-title { @apply text-base font-extrabold tracking-tight text-ink; }
+  .bar-track { @apply h-2 overflow-hidden rounded-full bg-track; }
+  .app-header { background: linear-gradient(100deg, var(--c-head-a), var(--c-head-b)); }
+}
+
+@layer utilities {
+  .no-scrollbar { scrollbar-width: none; }
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: .01ms !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
+}
+
+[x-cloak] { display: none !important; }
+@keyframes toast-in { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+.toast { animation: toast-in .25s ease-out; }
+
+@media print {
+  aside, header, nav.bottom-nav, .no-print { display: none !important; }
+}

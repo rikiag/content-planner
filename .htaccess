@@ -1,0 +1,43 @@
+# ============================================================================
+#  Content Planner — Root .htaccess
+#  Place the project in public_html/content-planner/ -> open https://domain/content-planner/
+#  All requests are forwarded internally to public/ (URLs never contain "/public").
+#  Internal directories (src/, data/, tools/, node_modules/) and dotfiles (.git, .env)
+#  are never served directly. Requires mod_rewrite (standard on Apache/LiteSpeed).
+# ============================================================================
+DirectoryIndex public/index.php
+Options -Indexes -MultiViews
+ServerSignature Off
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /content-planner/
+
+    # 1) Force HTTPS (skipped on localhost). Remove this block if SSL is not yet configured.
+    RewriteCond %{HTTPS} !=on
+    RewriteCond %{HTTP:X-Forwarded-Proto} !https [NC]
+    RewriteCond %{HTTP_HOST} !^(localhost|127\.0\.0\.1)(:[0-9]+)?$ [NC]
+    RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+    # 2) Deny access to hidden dotfiles and directories (.git, .env, .htaccess, .user.ini ...)
+    RewriteRule (^|/)\.(?!well-known/) - [F,L]
+
+    # 3) Deny direct access to internal folders and configuration files
+    RewriteRule ^(src|data|tools|node_modules)(/|$) - [F,L]
+    RewriteRule ^config\.(local|example)\.php$ - [F,L]
+
+    # 4) Forward all requests internally to public/
+    RewriteRule ^$ public/index.php [L]
+    RewriteRule ^(?!public/)(.*)$ public/$1 [L]
+</IfModule>
+
+# --- Fallback protection: block sensitive file extensions if mod_rewrite is disabled ---
+<FilesMatch "(?i)(\.(sqlite3?|db|log|sql|bak|old|swp|ini|env|md|lock|py|sh|dist|ya?ml|json|php\.dist)|^(config\.(local|example)\.php|package(-lock)?\.json|composer\.(json|lock))|~)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</FilesMatch>

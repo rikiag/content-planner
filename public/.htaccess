@@ -1,0 +1,36 @@
+# Loaded after the root .htaccess forwards requests to this directory.
+# (Also works standalone if DocumentRoot points directly to public/.)
+DirectoryIndex index.php
+Options -Indexes -MultiViews
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    # Route all non-existent files and directories to the PHP front controller
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^ index.php [L]
+</IfModule>
+
+AddType application/manifest+json .webmanifest
+
+# Only allow index.php to be executed in the public directory
+<FilesMatch "^(?!index\.php$).+\.php$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+<IfModule mod_headers.c>
+    <FilesMatch "\.(css|js|woff2|png|svg)$">
+        Header set Cache-Control "public, max-age=604800"
+    </FilesMatch>
+    # Keep service worker and web manifest fresh (must appear after static cache rule above).
+    <FilesMatch "^(sw\.js|manifest\.webmanifest)$">
+        Header set Cache-Control "no-cache"
+    </FilesMatch>
+    Header always set X-Content-Type-Options "nosniff"
+</IfModule>

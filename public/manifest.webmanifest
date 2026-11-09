@@ -1,0 +1,25 @@
+{
+  "id": "./",
+  "name": "Content Planner",
+  "short_name": "Planner",
+  "description": "Plan, schedule, and track your social media content performance.",
+  "lang": "en",
+  "dir": "ltr",
+  "start_url": "./?source=pwa",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#e6eefc",
+  "theme_color": "#2160d6",
+  "categories": ["productivity", "business"],
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "New Content", "short_name": "New Content", "url": "content/new", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Idea Bank", "short_name": "Ideas", "url": "ideas", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Analytics", "short_name": "Analytics", "url": "analytics", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] }
+  ]
+}

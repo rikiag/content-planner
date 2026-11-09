@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Offline · Content Planner</title>
+<meta name="theme-color" content="#2160d6">
+<style>
+  :root { color-scheme: light dark; --bg:#e6eefc; --card:#fff; --ink:#0e1d3b; --muted:#5b6a86; --brand:#2563eb; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#0a1120; --card:#131d31; --ink:#e8eefb; --muted:#93a1bd; --brand:#5b95ff; } }
+  * { box-sizing: border-box; }
+  body { margin:0; min-height:100dvh; display:grid; place-items:center; padding:1.5rem; background:var(--bg); color:var(--ink);
+         font-family: "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width:22rem; text-align:center; background:var(--card); padding:2rem 1.5rem; border-radius:1.75rem; box-shadow:0 8px 30px -12px rgba(15,42,87,.25); }
+  .ic { width:4rem; height:4rem; margin:0 auto 1rem; display:grid; place-items:center; border-radius:1.25rem; background:linear-gradient(135deg,#3b82f6,#4f46e5); color:#fff; }
+  h1 { margin:.25rem 0 .5rem; font-size:1.25rem; }
+  p { margin:0 0 1.25rem; color:var(--muted); font-size:.9rem; line-height:1.55; }
+  button { font:inherit; font-weight:700; border:0; border-radius:999px; padding:.7rem 1.4rem; background:var(--brand); color:#fff; cursor:pointer; }
+</style>
+</head>
+<body>
+<main>
+  <div class="ic" aria-hidden="true">
+    <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8.8a15 15 0 0 1 20 0M5 12.5a10 10 0 0 1 14 0M8.5 16a5 5 0 0 1 7 0M12 20h.01M3 3l18 18"/></svg>
+  </div>
+  <h1>You are offline</h1>
+  <p>This page has not been cached on your device yet. Please reconnect to the internet and try again. Previously visited pages remain available offline.</p>
+  <button onclick="location.reload()">Try again</button>
+</main>
+</body>
+</html>

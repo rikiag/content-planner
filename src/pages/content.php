@@ -14,27 +14,33 @@ function campaign_options(bool $blank = true): array
 
 function status_select(array $c, string $back): string
 {
-    $m = STATUSES[$c['status']] ?? STATUSES['draft'];
-    $html = '<form method="post" action="' . e(url('/content/' . $c['id'] . '/status')) . '" class="inline-block">' . csrf_field()
+    $allStatuses = statuses();
+    $m = $allStatuses[$c['status']] ?? reset($allStatuses);
+    $html = '<form method="post" action="' . e(url('/content/' . $c['id'] . '/status')) . '" class="inline-block" @click.stop>' . csrf_field()
         . '<input type="hidden" name="back" value="' . e($back) . '">'
         . '<select name="status" @change="$el.form.requestSubmit()" aria-label="Change status" class="cursor-pointer appearance-none rounded-full border-0 py-1.5 pl-3 pr-3 text-[11px] font-bold focus:outline-2 focus:outline-brand ' . $m['chip'] . '">';
-    foreach (STATUSES as $k => $s) {
-        $html .= '<option value="' . $k . '"' . ($k === $c['status'] ? ' selected' : '') . ' class="bg-surface text-ink">' . e($s['label']) . '</option>';
+    foreach ($allStatuses as $k => $s) {
+        $html .= '<option value="' . e($k) . '"' . ($k === $c['status'] ? ' selected' : '') . ' class="bg-surface text-ink">' . e($s['label']) . '</option>';
     }
     return $html . '</select></form>';
 }
 
 function content_row(array $c, string $back, bool $live = false): string
 {
-    $hay = mb_strtolower(implode(' ', [$c['title'], $c['caption'] ?? '', $c['hashtags'] ?? '', $c['platform'], $c['format'], $c['pillar'], $c['campaign_name'] ?? '', STATUSES[$c['status']]['label'] ?? '']));
+    $allStatuses = statuses();
+    $allPlatforms = platforms();
+    $hay = mb_strtolower(implode(' ', [$c['title'], $c['caption'] ?? '', $c['hashtags'] ?? '', $c['platform'], $c['format'], $c['pillar'], $c['campaign_name'] ?? '', $allStatuses[$c['status']]['label'] ?? '']));
     $late = is_overdue($c);
     $prog = clamp((int) $c['progress'], 0, 100);
+    $payload = content_payload($c);
     ob_start(); ?>
-    <article class="card flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:gap-4"<?= $live ? ' data-search="' . e($hay) . '" x-show="match($el)" x-transition.opacity' : '' ?>>
+    <article class="card flex cursor-pointer flex-col gap-3 p-4 transition hover:shadow-md sm:flex-row sm:items-center sm:gap-4"
+        @click="$store.contentModal.show(<?= e(json_encode($payload, JSON_UNESCAPED_UNICODE)) ?>)"
+        <?= $live ? ' data-search="' . e($hay) . '" x-show="match($el)" x-transition.opacity' : '' ?>>
         <div class="flex min-w-0 flex-1 items-start gap-3">
-            <span class="grid size-11 shrink-0 place-items-center rounded-2xl text-xs font-extrabold <?= PLATFORMS[$c['platform']]['cls'] ?? 'bg-soft' ?>"><?= e(platform_abbr($c['platform'])) ?></span>
+            <span class="grid size-11 shrink-0 place-items-center rounded-2xl text-xs font-extrabold <?= $allPlatforms[$c['platform']]['cls'] ?? 'bg-soft' ?>"><?= e(platform_abbr($c['platform'])) ?></span>
             <div class="min-w-0 flex-1">
-                <a href="<?= e(url('/content/' . $c['id'])) ?>" class="line-clamp-2 text-[15px] font-extrabold leading-snug hover:text-brand"><?= e($c['title']) ?></a>
+                <a href="<?= e(url('/content/' . $c['id'])) ?>" @click.prevent class="line-clamp-2 text-[15px] font-extrabold leading-snug hover:text-brand"><?= e($c['title']) ?></a>
                 <p class="mt-0.5 truncate text-xs text-muted"><?= e($c['format']) ?><?= $c['pillar'] ? ' · ' . e($c['pillar']) : '' ?><?= !empty($c['campaign_name']) ? ' · ' . e($c['campaign_name']) : '' ?></p>
                 <p class="mt-1 flex flex-wrap items-center gap-x-2 text-xs <?= $late ? 'font-bold text-rose-600 dark:text-rose-400' : 'text-muted' ?>">
                     <?= icon('clock', 'size-3.5') ?><?= e(fmt_dt($c['scheduled_at'])) ?><?= $late ? ' · Overdue' : '' ?>
@@ -51,7 +57,7 @@ function content_row(array $c, string $back, bool $live = false): string
                 <?php endif; ?>
             </div>
         </div>
-        <div class="flex items-center justify-between gap-2 sm:justify-end">
+        <div class="flex items-center justify-between gap-2 sm:justify-end" @click.stop>
             <?= status_select($c, $back) ?>
             <div class="flex items-center gap-1">
                 <a href="<?= e(url('/content/' . $c['id'])) ?>" class="grid size-9 place-items-center rounded-xl text-muted hover:bg-soft hover:text-ink" aria-label="Edit" title="Edit"><?= icon('pencil', 'size-4') ?></a>
@@ -68,158 +74,450 @@ function page_contents(): void
     $view = in_array(input('v'), ['board', 'calendar'], true) ? input('v') : 'list';
     $status = input('status');
     $platform = input('platform');
-    $camp = (int) input('campaign');
+    $camp = input('campaign');
     $search = input('q');
-    $back = request_path() . qs();
-
-    $where = ['1=1'];
-    $par = [];
-    if ($status === 'active') {
-        $where[] = "c.status IN ('idea','draft','review','scheduled')";
-    } elseif (isset(STATUSES[$status])) {
-        $where[] = 'c.status = ?';
-        $par[] = $status;
-    }
-    if (isset(PLATFORMS[$platform])) {
-        $where[] = 'c.platform = ?';
-        $par[] = $platform;
-    }
-    if ($camp > 0) {
-        $where[] = 'c.campaign_id = ?';
-        $par[] = $camp;
-    }
-    if ($search !== '') {
-        $where[] = '(c.title LIKE ? OR c.caption LIKE ? OR c.hashtags LIKE ?)';
-        array_push($par, "%$search%", "%$search%", "%$search%");
+    $pageNum = max(1, (int) input('page', '1'));
+    $calMode = in_array(input('cal'), ['day', 'week', 'month'], true) ? input('cal') : 'month';
+    $selectedDate = preg_match('/^\d{4}-\d{2}-\d{2}$/', input('date')) ? input('date') : date('Y-m-d');
+    if (preg_match('/^\d{4}-\d{2}$/', input('m')) && !preg_match('/^\d{4}-\d{2}-\d{2}$/', input('date'))) {
+        $selectedDate = input('m') . '-01';
     }
 
-    $month = preg_match('/^\d{4}-\d{2}$/', input('m')) ? input('m') : date('Y-m');
-    if ($view === 'calendar') {
-        $where[] = 'substr(c.scheduled_at,1,7) = ?';
-        $par[] = $month;
-    }
-    $order = ($status === 'active' || $view === 'calendar') ? 'ORDER BY (c.scheduled_at IS NULL), c.scheduled_at ASC' : 'ORDER BY (c.scheduled_at IS NULL), c.scheduled_at DESC';
-    $rows = q('SELECT c.*, ca.name AS campaign_name FROM contents c LEFT JOIN campaigns ca ON ca.id=c.campaign_id WHERE ' . implode(' AND ', $where) . " $order LIMIT 300", $par);
+    $rows = q('SELECT c.*, ca.name AS campaign_name FROM contents c LEFT JOIN campaigns ca ON ca.id=c.campaign_id ORDER BY (c.scheduled_at IS NULL), c.scheduled_at DESC, c.id DESC');
+    $items = array_map('content_payload', $rows);
 
-    $counts = [];
-    foreach (q('SELECT status, COUNT(*) n FROM contents GROUP BY status') as $r) {
-        $counts[$r['status']] = (int) $r['n'];
+    $allStatuses = [];
+    foreach (statuses() as $k => $m) {
+        $allStatuses[] = [
+            'key'   => (string) $k,
+            'label' => (string) $m['label'],
+            'chip'  => (string) $m['chip'],
+            'dot'   => (string) $m['dot'],
+            'tint'  => (string) $m['tint'],
+            'icon'  => (string) ($m['icon'] ?? 'bulb'),
+        ];
     }
-    $total = array_sum($counts);
+    $allPlatforms = array_keys(platforms());
+    $allCampaigns = [];
+    foreach (campaign_options(false) as $cid => $cname) {
+        $allCampaigns[] = ['id' => (int) $cid, 'name' => (string) $cname];
+    }
+
+    $config = [
+        'items'        => $items,
+        'statuses'     => $allStatuses,
+        'platforms'    => $allPlatforms,
+        'campaigns'    => $allCampaigns,
+        'view'         => $view,
+        'status'       => $status,
+        'platform'     => $platform,
+        'campaign'     => $camp !== '' ? (string) (int) $camp : '',
+        'q'            => $search,
+        'page'         => $pageNum,
+        'perPage'      => 8,
+        'calMode'      => $calMode,
+        'selectedDate' => $selectedDate,
+        'today'        => date('Y-m-d'),
+        'csrf'         => csrf_token(),
+        'baseUrl'      => url(''),
+    ];
 
     ob_start(); ?>
-    <div x-data="liveFilter(<?= e(json_encode($search, JSON_UNESCAPED_UNICODE)) ?>)">
-    <!-- Toolbar -->
-    <div class="mb-4 flex flex-col gap-3">
-        <div class="flex items-center gap-2">
-            <div class="grid flex-1 grid-cols-3 rounded-full bg-surface p-1 shadow-sm sm:flex-none" role="tablist" aria-label="View mode">
-                <?php foreach (['list' => ['List', 'list'], 'board' => ['Board', 'board'], 'calendar' => ['Calendar', 'calendar']] as $k => [$lbl, $ic]): ?>
-                    <a href="<?= e(url('/content' . qs(['v' => $k === 'list' ? null : $k, 'm' => null]))) ?>" role="tab" aria-selected="<?= $view === $k ? 'true' : 'false' ?>" class="inline-flex items-center justify-center gap-1.5 rounded-full px-3 py-2 text-xs font-bold transition sm:px-4 <?= $view === $k ? 'bg-hero text-white' : 'text-muted hover:text-ink' ?>"><?= icon($ic, 'size-4') ?><?= $lbl ?></a>
-                <?php endforeach; ?>
+    <div x-data="contentManager(<?= e(json_encode($config, JSON_UNESCAPED_UNICODE)) ?>)">
+        <!-- Toolbar -->
+        <div class="mb-4 flex flex-col gap-3">
+            <div class="flex flex-wrap items-center gap-2">
+                <div class="grid flex-1 grid-cols-3 rounded-full bg-surface p-1 shadow-sm sm:flex-none" role="tablist" aria-label="View mode">
+                    <button type="button" role="tab" :aria-selected="view === 'list'" @click="setView('list')"
+                        class="inline-flex items-center justify-center gap-1.5 rounded-full px-3 py-2 text-xs font-bold transition sm:px-4"
+                        :class="view === 'list' ? 'bg-hero text-white' : 'text-muted hover:text-ink'"><?= icon('list', 'size-4') ?>List</button>
+                    <button type="button" role="tab" :aria-selected="view === 'board'" @click="setView('board')"
+                        class="inline-flex items-center justify-center gap-1.5 rounded-full px-3 py-2 text-xs font-bold transition sm:px-4"
+                        :class="view === 'board' ? 'bg-hero text-white' : 'text-muted hover:text-ink'"><?= icon('board', 'size-4') ?>Board</button>
+                    <button type="button" role="tab" :aria-selected="view === 'calendar'" @click="setView('calendar')"
+                        class="inline-flex items-center justify-center gap-1.5 rounded-full px-3 py-2 text-xs font-bold transition sm:px-4"
+                        :class="view === 'calendar' ? 'bg-hero text-white' : 'text-muted hover:text-ink'"><?= icon('calendar', 'size-4') ?>Calendar</button>
+                </div>
+                <div class="ml-auto flex items-center gap-2">
+                    <a href="<?= e(url('/categories')) ?>" class="btn-soft hidden !px-3.5 !py-2 !text-xs sm:inline-flex" title="Manage Platform, Format, Pillar & Status"><?= icon('tag', 'size-4') ?>Categories</a>
+                    <a href="<?= e(url('/content/new')) ?>" class="btn-primary hidden sm:inline-flex"><?= icon('plus', 'size-4') ?>New content</a>
+                </div>
             </div>
-            <a href="<?= e(url('/content/new')) ?>" class="btn-primary ml-auto hidden sm:inline-flex"><?= icon('plus', 'size-4') ?>New content</a>
+
+            <!-- Search & Dropdown Filters -->
+            <div class="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
+                <label class="relative col-span-2 block sm:min-w-0 sm:flex-1 sm:basis-52">
+                    <span class="sr-only">Search content</span>
+                    <span class="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted"><?= icon('search', 'size-4') ?></span>
+                    <input type="search" x-model="q" @input.debounce.200ms="onFilterChange()" placeholder="Search title / caption / hashtags…" class="input !pl-10" enterkeyhint="search">
+                </label>
+                <select x-model="platform" @change="onFilterChange()" class="input sm:!w-auto" aria-label="Platform">
+                    <option value="">All platforms</option>
+                    <template x-for="p in platforms" :key="p">
+                        <option :value="p" x-text="p"></option>
+                    </template>
+                </select>
+                <select x-model="campaign" @change="onFilterChange()" class="input sm:!w-auto sm:max-w-52" aria-label="Campaign">
+                    <option value="">All campaigns</option>
+                    <template x-for="ca in campaigns" :key="ca.id">
+                        <option :value="String(ca.id)" x-text="ca.name"></option>
+                    </template>
+                </select>
+            </div>
+
+            <!-- Status Filter Pills -->
+            <div class="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 no-scrollbar sm:mx-0 sm:flex-wrap sm:px-0">
+                <button type="button" class="pill" :aria-current="status === '' ? 'true' : 'false'" @click="setStatus('')">
+                    All <b x-text="items.length"></b>
+                </button>
+                <button type="button" class="pill" :aria-current="status === 'active' ? 'true' : 'false'" @click="setStatus('active')">
+                    In progress <b x-text="activeCount()"></b>
+                </button>
+                <template x-for="s in statuses" :key="s.key">
+                    <button type="button" class="pill" :aria-current="status === s.key ? 'true' : 'false'" @click="setStatus(s.key)">
+                        <span class="size-2 rounded-full" :class="s.dot"></span>
+                        <span x-text="s.label"></span>
+                        <b x-text="statusCount(s.key)"></b>
+                    </button>
+                </template>
+            </div>
         </div>
 
-        <form action="<?= e(url('/content')) ?>" method="get" class="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
-            <input type="hidden" name="v" value="<?= e($view === 'list' ? '' : $view) ?>">
-            <?php if ($status): ?><input type="hidden" name="status" value="<?= e($status) ?>"><?php endif; ?>
-            <?php if ($view === 'calendar'): ?><input type="hidden" name="m" value="<?= e($month) ?>"><?php endif; ?>
-            <label class="relative col-span-2 block sm:min-w-0 sm:flex-1 sm:basis-52">
-                <span class="sr-only">Search content</span>
-                <span class="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted"><?= icon('search', 'size-4') ?></span>
-                <input type="search" name="q" x-model="q" placeholder="Search title / caption…" class="input !pl-10" enterkeyhint="search">
-            </label>
-            <select name="platform" class="input sm:!w-auto" @change="$el.form.requestSubmit()" aria-label="Platform">
-                <option value="">All platforms</option>
-                <?php foreach (PLATFORMS as $p => $_): ?><option value="<?= e($p) ?>" <?= $platform === $p ? 'selected' : '' ?>><?= e($p) ?></option><?php endforeach; ?>
-            </select>
-            <select name="campaign" class="input sm:!w-auto sm:max-w-52" @change="$el.form.requestSubmit()" aria-label="Campaign">
-                <option value="">All campaigns</option>
-                <?php foreach (campaign_options(false) as $id => $n): ?><option value="<?= $id ?>" <?= $camp === (int) $id ? 'selected' : '' ?>><?= e($n) ?></option><?php endforeach; ?>
-            </select>
-        </form>
+        <!-- ==================== 1. LIST VIEW ==================== -->
+        <div x-show="view === 'list'" x-transition.opacity>
+            <template x-if="filteredItems().length === 0">
+                <div class="card grid place-items-center gap-2 px-6 py-12 text-center">
+                    <div class="grid size-14 place-items-center rounded-2xl bg-soft text-brand"><?= icon('calendar', 'size-7') ?></div>
+                    <h3 class="text-base font-extrabold">No content found</h3>
+                    <p class="max-w-sm text-sm text-muted" x-text="(q || status || platform || campaign) ? 'No content matches the active filters.' : 'Start building your content calendar from a simple idea.'"></p>
+                    <a href="<?= e(url('/content/new')) ?>" class="btn-primary mt-2"><?= icon('plus', 'size-4') ?>New content</a>
+                </div>
+            </template>
 
-        <div class="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 no-scrollbar sm:mx-0 sm:flex-wrap sm:px-0">
-            <a class="pill" href="<?= e(url('/content' . qs(['status' => null]))) ?>" <?= $status === '' ? 'aria-current="true"' : '' ?>>All <b><?= $total ?></b></a>
-            <a class="pill" href="<?= e(url('/content' . qs(['status' => 'active']))) ?>" <?= $status === 'active' ? 'aria-current="true"' : '' ?>>In progress <b><?= $total - ($counts['published'] ?? 0) ?></b></a>
-            <?php foreach (STATUSES as $k => $m): ?>
-                <a class="pill" href="<?= e(url('/content' . qs(['status' => $k]))) ?>" <?= $status === $k ? 'aria-current="true"' : '' ?>><span class="size-2 rounded-full <?= $m['dot'] ?>"></span><?= e($m['label']) ?> <b><?= $counts[$k] ?? 0 ?></b></a>
-            <?php endforeach; ?>
-        </div>
-    </div>
-
-    <?php if ($view === 'list'): ?>
-        <?php if (!$rows): ?>
-            <?= empty_state('calendar', 'No content yet', $search || $status || $platform || $camp ? 'No content matches this filter.' : 'Start building your content calendar from a simple idea.', '<a href="' . e(url('/content/new')) . '" class="btn-primary mt-2">' . icon('plus', 'size-4') . 'New content</a>') ?>
-        <?php else: ?>
-            <div class="flex flex-col gap-3"><?php foreach ($rows as $c): ?><?= content_row($c, $back, true) ?><?php endforeach; ?></div>
-            <p x-show="visible() === 0" x-cloak class="card px-6 py-10 text-center text-sm text-muted">No content matches “<b x-text="q"></b>”.</p>
-        <?php endif; ?>
-
-    <?php elseif ($view === 'board'): ?>
-        <?php
-        $cols = [];
-        foreach ($rows as $c) {
-            $cols[$c['status']][] = $c;
-        } ?>
-        <div class="-mx-4 flex snap-x snap-mandatory scroll-px-4 gap-3 overflow-x-auto px-4 pb-3 no-scrollbar lg:mx-0 lg:grid lg:grid-cols-5 lg:overflow-visible lg:px-0">
-            <?php foreach (STATUSES as $k => $m): ?>
-                <section class="w-[78vw] max-w-80 shrink-0 snap-center rounded-[1.5rem] p-3 sm:w-72 lg:w-auto lg:max-w-none <?= $m['tint'] ?>" aria-label="<?= e($m['label']) ?>">
-                    <div class="mb-3 flex items-center gap-2 px-1"><span class="size-2.5 rounded-full <?= $m['dot'] ?>"></span><h3 class="text-sm font-extrabold"><?= e($m['label']) ?></h3><span class="ml-auto rounded-full bg-surface px-2 py-0.5 text-[11px] font-bold"><?= count($cols[$k] ?? []) ?></span></div>
-                    <div class="flex flex-col gap-2.5">
-                        <?php foreach ($cols[$k] ?? [] as $c): $late = is_overdue($c); ?>
-                            <article class="rounded-2xl bg-surface p-3 shadow-sm">
-                                <div class="flex items-start gap-2"><?= platform_chip($c['platform']) ?><a href="<?= e(url('/content/' . $c['id'])) ?>" class="line-clamp-3 text-[13px] font-bold leading-snug hover:text-brand"><?= e($c['title']) ?></a></div>
-                                <p class="mt-1.5 text-[11px] <?= $late ? 'font-bold text-rose-600 dark:text-rose-400' : 'text-muted' ?>"><?= e($c['format']) ?> · <?= e(fmt_dt($c['scheduled_at'])) ?></p>
-                                <div class="mt-2 flex items-center justify-between gap-2"><?= $c['status'] === 'published' ? '<span class="text-[11px] font-bold text-muted">' . e(fmt_k($c['views'])) . ' views</span>' : '<div class="bar-track w-16"><div class="h-full rounded-full bg-accent" style="width:' . clamp((int) $c['progress'], 0, 100) . '%"></div></div>' ?><?= status_select($c, $back) ?></div>
+            <template x-if="filteredItems().length > 0">
+                <div>
+                    <div class="flex flex-col gap-3">
+                        <template x-for="c in pagedItems()" :key="c.id">
+                            <article @click="openDetail(c)" class="card flex cursor-pointer flex-col gap-3 p-4 transition hover:shadow-md sm:flex-row sm:items-center sm:gap-4">
+                                <div class="flex min-w-0 flex-1 items-start gap-3">
+                                    <span class="grid size-11 shrink-0 place-items-center rounded-2xl text-xs font-extrabold" :class="c.platform_cls" x-text="c.platform_abbr"></span>
+                                    <div class="min-w-0 flex-1">
+                                        <h3 class="line-clamp-2 text-[15px] font-extrabold leading-snug hover:text-brand" x-text="c.title"></h3>
+                                        <p class="mt-0.5 truncate text-xs text-muted">
+                                            <span x-text="c.format"></span>
+                                            <template x-if="c.pillar"><span> · <span x-text="c.pillar"></span></span></template>
+                                            <template x-if="c.campaign_name"><span> · <span x-text="c.campaign_name"></span></span></template>
+                                        </p>
+                                        <p class="mt-1 flex flex-wrap items-center gap-x-2 text-xs" :class="c.is_overdue && c.status !== 'published' ? 'font-bold text-rose-600 dark:text-rose-400' : 'text-muted'">
+                                            <?= icon('clock', 'size-3.5') ?>
+                                            <span x-text="c.scheduled_fmt"></span>
+                                            <template x-if="c.is_overdue && c.status !== 'published'"><span> · Overdue</span></template>
+                                        </p>
+                                        <template x-if="c.status === 'published'">
+                                            <p class="mt-1.5 flex flex-wrap gap-x-3 text-[11px] font-semibold text-muted">
+                                                <span class="inline-flex items-center gap-1"><?= icon('eye', 'size-3.5') ?><span x-text="c.views_fmt"></span></span>
+                                                <span class="inline-flex items-center gap-1"><?= icon('heart', 'size-3.5') ?><span x-text="c.likes_fmt"></span></span>
+                                                <span class="inline-flex items-center gap-1"><?= icon('comment', 'size-3.5') ?><span x-text="c.comments_fmt"></span></span>
+                                                <span class="text-emerald-600 dark:text-emerald-400">ER <span x-text="c.er_fmt"></span></span>
+                                            </p>
+                                        </template>
+                                        <template x-if="c.status !== 'published'">
+                                            <div class="mt-2 flex items-center gap-2">
+                                                <div class="bar-track w-28"><div class="h-full rounded-full bg-accent" :style="'width:' + c.progress + '%'"></div></div>
+                                                <span class="text-[11px] font-bold text-muted" x-text="c.progress + '%'"></span>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </div>
+                                <div class="flex items-center justify-between gap-2 sm:justify-end" @click.stop>
+                                    <select :value="c.status" @change="changeStatus(c, $event.target.value)" aria-label="Change status"
+                                        class="cursor-pointer appearance-none rounded-full border-0 py-1.5 pl-3 pr-3 text-[11px] font-bold focus:outline-2 focus:outline-brand"
+                                        :class="statusChip(c.status)">
+                                        <template x-for="st in statuses" :key="st.key">
+                                            <option :value="st.key" :selected="st.key === c.status" class="bg-surface text-ink" x-text="st.label"></option>
+                                        </template>
+                                    </select>
+                                    <div class="flex items-center gap-1">
+                                        <a :href="itemUrl(c.id)" class="grid size-9 place-items-center rounded-xl text-muted hover:bg-soft hover:text-ink" aria-label="Edit" title="Edit"><?= icon('pencil', 'size-4') ?></a>
+                                        <form method="post" :action="itemUrl(c.id) + '/duplicate'" class="inline"><?= csrf_field() ?><button class="grid size-9 place-items-center rounded-xl text-muted hover:bg-soft hover:text-ink" aria-label="Duplicate" title="Duplicate"><?= icon('copy', 'size-4') ?></button></form>
+                                        <button type="button" @click="deleteItem(c)" class="grid size-9 place-items-center rounded-xl text-muted hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-500/10" aria-label="Delete" title="Delete"><?= icon('trash', 'size-4') ?></button>
+                                    </div>
+                                </div>
                             </article>
-                        <?php endforeach; ?>
-                        <?php if (empty($cols[$k])): ?><p class="rounded-2xl border border-dashed border-line px-3 py-6 text-center text-xs text-muted">Empty</p><?php endif; ?>
+                        </template>
                     </div>
-                </section>
-            <?php endforeach; ?>
+
+                    <!-- Pagination Bar -->
+                    <div x-show="totalPages() > 1" class="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-3xl bg-surface px-4 py-3 shadow-sm">
+                        <p class="text-xs text-muted">
+                            Showing <b class="text-ink" x-text="((page - 1) * perPage) + 1"></b>–<b class="text-ink" x-text="Math.min(page * perPage, filteredItems().length)"></b>
+                            of <b class="text-ink" x-text="filteredItems().length"></b> items
+                        </p>
+                        <div class="flex items-center gap-1">
+                            <button type="button" @click="setPage(page - 1)" :disabled="page <= 1"
+                                class="grid size-9 place-items-center rounded-xl border border-line bg-surface text-xs font-bold text-ink transition hover:bg-soft disabled:opacity-40" aria-label="Previous page">
+                                <?= icon('chevron-left', 'size-4') ?>
+                            </button>
+                            <template x-for="p in pageNumbers()" :key="p">
+                                <button type="button" @click="setPage(p)"
+                                    class="grid size-9 place-items-center rounded-xl text-xs font-extrabold transition"
+                                    :class="p === page ? 'bg-hero text-white shadow-sm' : 'text-muted hover:bg-soft hover:text-ink'"
+                                    x-text="p"></button>
+                            </template>
+                            <button type="button" @click="setPage(page + 1)" :disabled="page >= totalPages()"
+                                class="grid size-9 place-items-center rounded-xl border border-line bg-surface text-xs font-bold text-ink transition hover:bg-soft disabled:opacity-40" aria-label="Next page">
+                                <?= icon('chevron-right', 'size-4') ?>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </template>
         </div>
 
-    <?php else:
-        $first = strtotime($month . '-01');
-        $prev = date('Y-m', strtotime('-1 month', $first));
-        $next = date('Y-m', strtotime('+1 month', $first));
-        $lead = (int) date('N', $first) - 1;
-        $dim = (int) date('t', $first);
-        $by = [];
-        foreach ($rows as $c) {
-            $by[(int) substr((string) $c['scheduled_at'], 8, 2)][] = $c;
-        }
-        $todayStr = date('Y-m-d'); ?>
-        <div class="card p-3 sm:p-5">
-            <div class="mb-3 flex items-center justify-between">
-                <a href="<?= e(url('/content' . qs(['m' => $prev]))) ?>" class="grid size-10 place-items-center rounded-xl hover:bg-soft" aria-label="Previous month"><?= icon('chevron-left') ?></a>
-                <h2 class="text-base font-extrabold"><?= MONTHS[(int) date('n', $first) - 1] ?> <?= date('Y', $first) ?></h2>
-                <a href="<?= e(url('/content' . qs(['m' => $next]))) ?>" class="grid size-10 place-items-center rounded-xl hover:bg-soft" aria-label="Next month"><?= icon('chevron-right') ?></a>
-            </div>
-            <div class="grid grid-cols-7 gap-px overflow-hidden rounded-2xl bg-line text-center">
-                <?php foreach (['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as $d): ?><div class="bg-soft py-2 text-[10px] font-bold uppercase tracking-wide text-muted sm:text-xs"><?= $d ?></div><?php endforeach; ?>
-                <?php for ($i = 0; $i < $lead; $i++): ?><div class="min-h-14 bg-surface/60 sm:min-h-24"></div><?php endfor; ?>
-                <?php for ($d = 1; $d <= $dim; $d++):
-                    $ds = $month . '-' . str_pad((string) $d, 2, '0', STR_PAD_LEFT);
-                    $items = $by[$d] ?? []; ?>
-                    <div class="min-h-14 bg-surface p-1 text-left sm:min-h-24 sm:p-1.5">
-                        <a href="<?= e(url('/content/new?date=' . $ds)) ?>" class="mb-0.5 grid size-6 place-items-center rounded-full text-[11px] font-bold hover:bg-soft <?= $ds === $todayStr ? '!bg-accent text-white' : 'text-muted' ?>" aria-label="Add content on day <?= $d ?>"><?= $d ?></a>
-                        <div class="hidden flex-col gap-0.5 sm:flex">
-                            <?php foreach (array_slice($items, 0, 3) as $c): ?>
-                                <a href="<?= e(url('/content/' . $c['id'])) ?>" class="truncate rounded-md px-1.5 py-0.5 text-[10px] font-bold <?= STATUSES[$c['status']]['chip'] ?>" title="<?= e($c['title']) ?>"><?= e(date('H:i', (int) ts($c['scheduled_at']))) ?> <?= e($c['title']) ?></a>
-                            <?php endforeach; ?>
-                            <?php if (count($items) > 3): ?><span class="px-1 text-[10px] font-bold text-muted">+<?= count($items) - 3 ?> more</span><?php endif; ?>
+        <!-- ==================== 2. KANBAN BOARD VIEW (WITH DRAG & DROP) ==================== -->
+        <div x-show="view === 'board'" x-cloak x-transition.opacity>
+            <div class="-mx-4 flex snap-x snap-mandatory scroll-px-4 gap-3 overflow-x-auto px-4 pb-3 no-scrollbar lg:mx-0 lg:grid lg:grid-cols-5 lg:overflow-visible lg:px-0">
+                <template x-for="st in statuses" :key="st.key">
+                    <section class="w-[78vw] max-w-80 shrink-0 snap-center rounded-[1.5rem] p-3 transition sm:w-72 lg:w-auto lg:max-w-none"
+                        :class="[st.tint, dragOverCol === st.key ? 'ring-2 ring-brand' : '']"
+                        @dragover.prevent="dragOverCol = st.key"
+                        @dragleave="if ($event.currentTarget === $event.target) dragOverCol = null"
+                        @drop.prevent="onDrop(st.key)"
+                        :aria-label="st.label">
+                        <div class="mb-3 flex items-center gap-2 px-1">
+                            <span class="size-2.5 rounded-full" :class="st.dot"></span>
+                            <h3 class="text-sm font-extrabold" x-text="st.label"></h3>
+                            <span class="ml-auto rounded-full bg-surface px-2 py-0.5 text-[11px] font-bold" x-text="columnItems(st.key).length"></span>
                         </div>
-                        <div class="flex flex-wrap gap-0.5 sm:hidden"><?php foreach ($items as $c): ?><span class="size-1.5 rounded-full <?= STATUSES[$c['status']]['dot'] ?>"></span><?php endforeach; ?></div>
-                    </div>
-                <?php endfor; ?>
+                        <div class="flex min-h-24 flex-col gap-2.5">
+                            <template x-for="c in columnItems(st.key)" :key="c.id">
+                                <article draggable="true"
+                                    @dragstart="onDragStart($event, c.id)"
+                                    @dragend="onDragEnd()"
+                                    @click="openDetail(c)"
+                                    class="cursor-grab rounded-2xl bg-surface p-3 shadow-sm transition hover:shadow-md active:cursor-grabbing"
+                                    :class="draggingId === c.id ? 'opacity-40' : ''">
+                                    <div class="flex items-start gap-2">
+                                        <span class="chip" :class="c.platform_cls" x-text="c.platform_abbr"></span>
+                                        <h4 class="line-clamp-3 text-[13px] font-bold leading-snug hover:text-brand" x-text="c.title"></h4>
+                                    </div>
+                                    <p class="mt-1.5 text-[11px]" :class="c.is_overdue && c.status !== 'published' ? 'font-bold text-rose-600 dark:text-rose-400' : 'text-muted'">
+                                        <span x-text="c.format"></span> · <span x-text="c.scheduled_fmt"></span>
+                                    </p>
+                                    <div class="mt-2 flex items-center justify-between gap-2" @click.stop>
+                                        <template x-if="c.status === 'published'">
+                                            <span class="text-[11px] font-bold text-muted" x-text="c.views_fmt + ' views'"></span>
+                                        </template>
+                                        <template x-if="c.status !== 'published'">
+                                            <div class="bar-track w-16"><div class="h-full rounded-full bg-accent" :style="'width:' + c.progress + '%'"></div></div>
+                                        </template>
+                                        <select :value="c.status" @change="changeStatus(c, $event.target.value)" aria-label="Change status"
+                                            class="cursor-pointer appearance-none rounded-full border-0 py-1.5 pl-3 pr-3 text-[11px] font-bold focus:outline-2 focus:outline-brand"
+                                            :class="statusChip(c.status)">
+                                            <template x-for="opt in statuses" :key="opt.key">
+                                                <option :value="opt.key" :selected="opt.key === c.status" class="bg-surface text-ink" x-text="opt.label"></option>
+                                            </template>
+                                        </select>
+                                    </div>
+                                </article>
+                            </template>
+                            <template x-if="columnItems(st.key).length === 0">
+                                <p class="rounded-2xl border border-dashed border-line px-3 py-6 text-center text-xs text-muted">Drop content here</p>
+                            </template>
+                        </div>
+                    </section>
+                </template>
             </div>
         </div>
-        <div class="mt-4 flex flex-col gap-3 sm:hidden">
-            <?php foreach ($rows as $c): ?><?= content_row($c, $back) ?><?php endforeach; ?>
+
+        <!-- ==================== 3. CALENDAR VIEW (DAY, WEEK, MONTH + SIDE CONTENT LIST) ==================== -->
+        <div x-show="view === 'calendar'" x-cloak x-transition.opacity>
+            <div class="grid grid-cols-1 gap-5 lg:grid-cols-[1fr_22rem]">
+                <!-- Left Column: Calendar (Day / Week / Month) -->
+                <div class="card p-3 sm:p-5">
+                    <!-- Calendar Header -->
+                    <div class="mb-4 flex flex-wrap items-center justify-between gap-2">
+                        <div class="flex items-center gap-1.5">
+                            <button type="button" @click="calStep(-1)" class="grid size-9 place-items-center rounded-xl border border-line hover:bg-soft" aria-label="Previous"><?= icon('chevron-left', 'size-4') ?></button>
+                            <button type="button" @click="calToday()" class="rounded-xl border border-line px-3 py-1.5 text-xs font-bold hover:bg-soft">Today</button>
+                            <button type="button" @click="calStep(1)" class="grid size-9 place-items-center rounded-xl border border-line hover:bg-soft" aria-label="Next"><?= icon('chevron-right', 'size-4') ?></button>
+                            <h2 class="ml-1 text-sm font-extrabold sm:text-base" x-text="calTitle()"></h2>
+                        </div>
+
+                        <div class="inline-flex rounded-full bg-soft p-1 text-xs font-bold" role="tablist" aria-label="Calendar mode">
+                            <button type="button" role="tab" :aria-selected="calMode === 'day'" @click="setCalMode('day')"
+                                class="rounded-full px-3 py-1.5 transition" :class="calMode === 'day' ? 'bg-hero text-white shadow-sm' : 'text-muted hover:text-ink'">Day</button>
+                            <button type="button" role="tab" :aria-selected="calMode === 'week'" @click="setCalMode('week')"
+                                class="rounded-full px-3 py-1.5 transition" :class="calMode === 'week' ? 'bg-hero text-white shadow-sm' : 'text-muted hover:text-ink'">Week</button>
+                            <button type="button" role="tab" :aria-selected="calMode === 'month'" @click="setCalMode('month')"
+                                class="rounded-full px-3 py-1.5 transition" :class="calMode === 'month' ? 'bg-hero text-white shadow-sm' : 'text-muted hover:text-ink'">Month</button>
+                        </div>
+                    </div>
+
+                    <!-- MONTH VIEW -->
+                    <template x-if="calMode === 'month'">
+                        <div class="grid grid-cols-7 gap-px overflow-hidden rounded-2xl bg-line text-center">
+                            <template x-for="dow in ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']" :key="dow">
+                                <div class="bg-soft py-2 text-[10px] font-bold uppercase tracking-wide text-muted sm:text-xs" x-text="dow"></div>
+                            </template>
+                            <template x-for="(cell, idx) in monthCells()" :key="idx">
+                                <div @click="cell.date && selectDate(cell.date)"
+                                    class="min-h-14 p-1 text-left transition sm:min-h-24 sm:p-1.5"
+                                    :class="!cell.date ? 'bg-surface/60' : (cell.date === selectedDate ? 'cursor-pointer bg-brandsoft/60 ring-2 ring-inset ring-brand' : 'cursor-pointer bg-surface hover:bg-soft/40')">
+                                    <template x-if="cell.date">
+                                        <div>
+                                            <div class="mb-1 flex items-center justify-between">
+                                                <span class="grid size-6 place-items-center rounded-full text-[11px] font-bold"
+                                                    :class="cell.date === today ? '!bg-accent text-white' : (cell.date === selectedDate ? 'bg-brand text-white' : 'text-muted')"
+                                                    x-text="cell.day"></span>
+                                                <span x-show="cell.items.length > 0" class="text-[10px] font-bold text-muted sm:hidden" x-text="cell.items.length"></span>
+                                            </div>
+                                            <div class="hidden flex-col gap-0.5 sm:flex">
+                                                <template x-for="c in cell.items.slice(0, 3)" :key="c.id">
+                                                    <button type="button" @click.stop="selectDate(cell.date); openDetail(c)"
+                                                        class="w-full truncate rounded-md px-1.5 py-0.5 text-left text-[10px] font-bold transition hover:brightness-95"
+                                                        :class="statusChip(c.status)" :title="c.title">
+                                                        <span x-text="c.scheduled_time"></span> <span x-text="c.title"></span>
+                                                    </button>
+                                                </template>
+                                                <template x-if="cell.items.length > 3">
+                                                    <span class="px-1 text-[10px] font-bold text-muted" x-text="'+' + (cell.items.length - 3) + ' more'"></span>
+                                                </template>
+                                            </div>
+                                            <div class="flex flex-wrap gap-0.5 sm:hidden">
+                                                <template x-for="c in cell.items" :key="c.id">
+                                                    <span class="size-1.5 rounded-full" :class="statusDot(c.status)"></span>
+                                                </template>
+                                            </div>
+                                        </div>
+                                    </template>
+                                </div>
+                            </template>
+                        </div>
+                    </template>
+
+                    <!-- WEEK VIEW -->
+                    <template x-if="calMode === 'week'">
+                        <div class="grid grid-cols-1 gap-2 sm:grid-cols-7">
+                            <template x-for="day in weekDays()" :key="day.date">
+                                <div @click="selectDate(day.date)"
+                                    class="flex min-h-24 cursor-pointer flex-col rounded-2xl border p-2.5 transition sm:min-h-56"
+                                    :class="day.date === selectedDate ? 'border-brand bg-brandsoft/40 ring-2 ring-brand' : 'border-line bg-soft2/60 hover:bg-soft'">
+                                    <div class="mb-2 flex items-center justify-between border-b border-line pb-1.5">
+                                        <span class="text-xs font-bold text-muted" x-text="day.dow"></span>
+                                        <span class="grid size-6 place-items-center rounded-full text-xs font-extrabold"
+                                            :class="day.date === today ? '!bg-accent text-white' : (day.date === selectedDate ? 'bg-brand text-white' : 'text-ink')"
+                                            x-text="day.dayNum"></span>
+                                    </div>
+                                    <div class="flex flex-col gap-1.5">
+                                        <template x-for="c in day.items" :key="c.id">
+                                            <button type="button" @click.stop="selectDate(day.date); openDetail(c)"
+                                                class="flex flex-col gap-0.5 rounded-xl bg-surface p-2 text-left shadow-sm transition hover:shadow-md">
+                                                <div class="flex items-center justify-between gap-1">
+                                                    <span class="chip !px-1.5 !py-0.5 !text-[9px]" :class="c.platform_cls" x-text="c.platform_abbr"></span>
+                                                    <span class="text-[10px] font-bold text-muted" x-text="c.scheduled_time"></span>
+                                                </div>
+                                                <span class="line-clamp-2 text-[11px] font-bold leading-tight text-ink" x-text="c.title"></span>
+                                            </button>
+                                        </template>
+                                        <template x-if="day.items.length === 0">
+                                            <span class="py-2 text-center text-[11px] text-muted opacity-60">No posts</span>
+                                        </template>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </template>
+
+                    <!-- DAY VIEW -->
+                    <template x-if="calMode === 'day'">
+                        <div class="flex flex-col gap-3">
+                            <div class="flex items-center justify-between rounded-2xl bg-soft2 px-4 py-3">
+                                <div>
+                                    <div class="text-xs font-semibold text-muted" x-text="selectedDate === today ? 'Today’s Schedule' : 'Selected Day Schedule'"></div>
+                                    <div class="text-base font-extrabold" x-text="formatDateFull(selectedDate)"></div>
+                                </div>
+                                <a :href="newDateUrl(selectedDate)" class="btn-primary !px-3.5 !py-2 !text-xs"><?= icon('plus', 'size-4') ?>Add on this day</a>
+                            </div>
+
+                            <template x-if="selectedDateItems().length === 0">
+                                <div class="rounded-2xl border border-dashed border-line px-4 py-10 text-center">
+                                    <p class="text-sm font-bold">No content scheduled on this day</p>
+                                    <p class="mt-1 text-xs text-muted">Click the button above to schedule a post for <span x-text="formatDateFull(selectedDate)"></span>.</p>
+                                </div>
+                            </template>
+
+                            <div class="flex flex-col gap-2.5">
+                                <template x-for="c in selectedDateItems()" :key="c.id">
+                                    <div @click="openDetail(c)" class="flex cursor-pointer items-center gap-3 rounded-2xl border border-line bg-soft2 p-3.5 transition hover:bg-soft">
+                                        <div class="w-14 shrink-0 text-center">
+                                            <span class="block text-xs font-extrabold text-brand" x-text="c.scheduled_time || '--:--'"></span>
+                                            <span class="text-[10px] text-muted" x-text="c.format"></span>
+                                        </div>
+                                        <span class="grid size-10 shrink-0 place-items-center rounded-xl text-xs font-extrabold" :class="c.platform_cls" x-text="c.platform_abbr"></span>
+                                        <div class="min-w-0 flex-1">
+                                            <div class="truncate text-sm font-extrabold" x-text="c.title"></div>
+                                            <div class="text-xs text-muted" x-text="c.pillar || c.campaign_name || 'No pillar'"></div>
+                                        </div>
+                                        <span class="chip" :class="statusChip(c.status)" x-text="statusLabel(c.status)"></span>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+
+                <!-- Right Column: 1 Kolom List Content untuk Tanggal yang Diklik (Default Hari Ini) -->
+                <aside class="card flex flex-col p-4 sm:p-5" aria-label="Content for selected date">
+                    <div class="mb-3 flex items-center justify-between gap-2 border-b border-line pb-3">
+                        <div class="min-w-0">
+                            <div class="flex items-center gap-1.5">
+                                <span class="text-xs font-extrabold uppercase tracking-wider text-brand" x-text="selectedDate === today ? 'Today' : 'Selected Date'"></span>
+                                <span class="rounded-full bg-soft px-2 py-0.5 text-[11px] font-bold text-ink" x-text="selectedDateItems().length"></span>
+                            </div>
+                            <h3 class="mt-0.5 truncate text-sm font-extrabold" x-text="formatDateFull(selectedDate)"></h3>
+                        </div>
+                        <a :href="newDateUrl(selectedDate)" class="btn-primary shrink-0 !px-3 !py-2 !text-xs" title="Add content on this date"><?= icon('plus', 'size-4') ?>Add</a>
+                    </div>
+
+                    <template x-if="selectedDateItems().length === 0">
+                        <div class="my-auto flex flex-col items-center justify-center py-10 text-center">
+                            <div class="grid size-12 place-items-center rounded-2xl bg-soft text-brand"><?= icon('calendar', 'size-6') ?></div>
+                            <p class="mt-2.5 text-sm font-extrabold">No content on this date</p>
+                            <p class="mt-1 max-w-[15rem] text-xs text-muted">Click another date on the calendar or schedule a new post for this day.</p>
+                            <a :href="newDateUrl(selectedDate)" class="btn-soft mt-3 !px-3.5 !py-2 !text-xs"><?= icon('plus', 'size-3.5') ?>Plan content</a>
+                        </div>
+                    </template>
+
+                    <div class="flex flex-col gap-2.5" x-show="selectedDateItems().length > 0">
+                        <template x-for="c in selectedDateItems()" :key="c.id">
+                            <article @click="openDetail(c)" class="cursor-pointer rounded-2xl border border-line bg-soft2 p-3 transition hover:border-brand hover:shadow-sm">
+                                <div class="flex items-start gap-2.5">
+                                    <span class="grid size-9 shrink-0 place-items-center rounded-xl text-[11px] font-extrabold" :class="c.platform_cls" x-text="c.platform_abbr"></span>
+                                    <div class="min-w-0 flex-1">
+                                        <h4 class="line-clamp-2 text-xs font-extrabold leading-snug hover:text-brand" x-text="c.title"></h4>
+                                        <p class="mt-0.5 text-[11px] text-muted">
+                                            <span x-text="c.scheduled_time || 'All day'"></span> · <span x-text="c.format"></span>
+                                            <template x-if="c.pillar"><span> · <span x-text="c.pillar"></span></span></template>
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="mt-2.5 flex items-center justify-between gap-2 border-t border-line pt-2" @click.stop>
+                                    <select :value="c.status" @change="changeStatus(c, $event.target.value)" aria-label="Change status"
+                                        class="cursor-pointer appearance-none rounded-full border-0 py-1 pl-2.5 pr-2.5 text-[10px] font-bold focus:outline-2 focus:outline-brand"
+                                        :class="statusChip(c.status)">
+                                        <template x-for="st in statuses" :key="st.key">
+                                            <option :value="st.key" :selected="st.key === c.status" class="bg-surface text-ink" x-text="st.label"></option>
+                                        </template>
+                                    </select>
+                                    <a :href="itemUrl(c.id)" class="text-[11px] font-bold text-brand hover:underline">Edit →</a>
+                                </div>
+                            </article>
+                        </template>
+                    </div>
+                </aside>
+            </div>
         </div>
-    <?php endif; ?>
     </div>
     <?php
     page('Content', 'content', (string) ob_get_clean(), ['subtitle' => 'Content calendar & pipeline']);
@@ -231,8 +529,13 @@ function page_content_form(int $id = 0): void
     if ($id && !$c) {
         not_found();
     }
+    $allPlatforms = array_keys(platforms());
+    $allFormats = formats();
+    $allPillars = pillars();
+    $allStatuses = statuses();
+
     $c ??= [
-        'title' => '', 'platform' => 'Instagram', 'format' => 'Feed', 'pillar' => '', 'status' => 'draft',
+        'title' => '', 'platform' => $allPlatforms[0] ?? 'Instagram', 'format' => $allFormats[0] ?? 'Feed', 'pillar' => '', 'status' => isset($allStatuses['draft']) ? 'draft' : (string) array_key_first($allStatuses),
         'campaign_id' => (int) input('campaign') ?: '', 'scheduled_at' => preg_match('/^\d{4}-\d{2}-\d{2}$/', input('date')) ? input('date') . ' 09:00' : date('Y-m-d H:00', strtotime('+1 day')),
         'progress' => 0, 'caption' => '', 'hashtags' => '', 'post_url' => '', 'views' => 0, 'likes' => 0, 'comments' => 0, 'shares' => 0, 'saves' => 0,
     ];
@@ -240,11 +543,11 @@ function page_content_form(int $id = 0): void
 
     $f = field('title', 'Title / Topic', 'text', $c['title'], ['req' => true, 'max' => 160, 'ph' => 'e.g. 5-Minute Daily Mobility Checklist'])
         . '<div class="grid grid-cols-1 gap-4 sm:grid-cols-2">'
-        . field('platform', 'Platform', 'select', $c['platform'], ['options' => $opt(array_keys(PLATFORMS))])
-        . field('format', 'Format', 'select', $c['format'], ['options' => $opt(FORMATS)])
-        . field('pillar', 'Content Pillar', 'select', $c['pillar'], ['options' => ['' => '— Select —'] + $opt(PILLARS)])
+        . field('platform', 'Platform', 'select', $c['platform'], ['options' => $opt($allPlatforms)])
+        . field('format', 'Format', 'select', $c['format'], ['options' => $opt($allFormats)])
+        . field('pillar', 'Content Pillar', 'select', $c['pillar'], ['options' => ['' => '— Select —'] + $opt($allPillars)])
         . field('campaign_id', 'Campaign', 'select', $c['campaign_id'], ['options' => campaign_options()])
-        . field('status', 'Status', 'select', $c['status'], ['options' => array_map(fn($s) => $s['label'], STATUSES)])
+        . field('status', 'Status', 'select', $c['status'], ['options' => array_map(fn($s) => $s['label'], $allStatuses)])
         . field('scheduled_at', 'Scheduled Date & Time', 'datetime', to_input_dt($c['scheduled_at']))
         . '</div>'
         . field('progress', 'Completion Progress', 'range', (int) $c['progress'], ['step' => 5])
@@ -257,10 +560,20 @@ function page_content_form(int $id = 0): void
         . field('comments', 'Comments', 'number', $c['comments']) . field('shares', 'Shares', 'number', $c['shares'])
         . field('saves', 'Saves', 'number', $c['saves']) . '</div>';
 
-    $form = form_shell($id ? '/content/' . $id : '/content/new', $f, '/content');
-    $del = $id ? '<div class="mx-auto mt-3 max-w-3xl text-right">' . delete_form('/content/' . $id . '/delete', 'Delete this content item?', 'Delete content', 'btn-ghost !text-rose-600') . '</div>' : '';
+    $leftDeleteBtn = '';
+    $hiddenDeleteForm = '';
+    if ($id) {
+        $leftDeleteBtn = '<button type="button" class="btn-ghost !text-rose-600" x-data @click="$store.confirm.ask(\'Delete this content item?\', () => document.getElementById(\'del-content-form\').submit())">'
+            . icon('trash', 'size-4') . 'Delete content</button>';
+        $hiddenDeleteForm = '<form id="del-content-form" method="post" action="' . e(url('/content/' . $id . '/delete')) . '" class="hidden">'
+            . csrf_field()
+            . '<input type="hidden" name="back" value="' . e(input('back')) . '">'
+            . '</form>';
+    }
 
-    page($id ? 'Edit Content' : 'New Content', 'content', $form . $del, ['subtitle' => $id ? e($c['title']) : 'Plan your next post']);
+    $form = form_shell($id ? '/content/' . $id : '/content/new', $f, '/content', $leftDeleteBtn, $hiddenDeleteForm);
+
+    page($id ? 'Edit Content' : 'New Content', 'content', $form, ['subtitle' => $id ? e($c['title']) : 'Plan your next post']);
 }
 
 function action_content_save(int $id = 0): void
@@ -270,10 +583,15 @@ function action_content_save(int $id = 0): void
         flash('Title is required.', 'err');
         redirect($id ? "/content/$id" : '/content/new');
     }
-    $platform = isset(PLATFORMS[input('platform')]) ? input('platform') : 'Instagram';
-    $format = in_array(input('format'), FORMATS, true) ? input('format') : 'Feed';
-    $pillar = in_array(input('pillar'), PILLARS, true) ? input('pillar') : '';
-    $status = isset(STATUSES[input('status')]) ? input('status') : 'draft';
+    $allPlatforms = platforms();
+    $allFormats = formats();
+    $allPillars = pillars();
+    $allStatuses = statuses();
+
+    $platform = isset($allPlatforms[input('platform')]) ? input('platform') : (string) array_key_first($allPlatforms);
+    $format = in_array(input('format'), $allFormats, true) ? input('format') : ($allFormats[0] ?? 'Feed');
+    $pillar = in_array(input('pillar'), $allPillars, true) ? input('pillar') : '';
+    $status = isset($allStatuses[input('status')]) ? input('status') : (isset($allStatuses['draft']) ? 'draft' : (string) array_key_first($allStatuses));
     $cid = (int) input('campaign_id');
     if ($cid && !q1('SELECT 1 FROM campaigns WHERE id=?', [$cid])) {
         $cid = 0;
@@ -304,14 +622,23 @@ function action_content_save(int $id = 0): void
 function action_content_status(int $id): void
 {
     $s = input('status');
+    $allStatuses = statuses();
     $c = q1('SELECT * FROM contents WHERE id=?', [$id]);
-    if (!$c || !isset(STATUSES[$s])) {
+    if (!$c || !isset($allStatuses[$s])) {
+        if (is_ajax()) {
+            json_out(['ok' => false, 'error' => 'Invalid content or status.'], 404);
+        }
         not_found();
     }
     $pub = $s === 'published' ? ($c['published_at'] ?: now_str()) : null;
-    $prog = $s === 'published' ? 100 : $c['progress'];
+    $prog = $s === 'published' ? 100 : (int) $c['progress'];
     exec_sql("UPDATE contents SET status=?, published_at=?, progress=?, updated_at=datetime('now','localtime') WHERE id=?", [$s, $pub, $prog, $id]);
-    flash('Status: ' . STATUSES[$s]['label'] . '.');
+    $msg = 'Status: ' . $allStatuses[$s]['label'] . '.';
+    if (is_ajax()) {
+        $updated = q1('SELECT c.*, ca.name AS campaign_name FROM contents c LEFT JOIN campaigns ca ON ca.id=c.campaign_id WHERE c.id=?', [$id]);
+        json_out(['ok' => true, 'msg' => $msg, 'item' => content_payload($updated)]);
+    }
+    flash($msg);
     redirect(safe_back('/content'));
 }
 
@@ -328,6 +655,9 @@ function action_content_duplicate(int $id): void
 function action_content_delete(int $id): void
 {
     exec_sql('DELETE FROM contents WHERE id=?', [$id]);
+    if (is_ajax()) {
+        json_out(['ok' => true, 'msg' => 'Content deleted.']);
+    }
     flash('Content deleted.');
     $back = safe_back('/content');
     redirect(str_contains($back, '/content/' . $id) ? '/content' : $back);

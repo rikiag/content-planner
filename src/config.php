@@ -76,7 +76,7 @@ function send_security_headers(): void
     header('X-Content-Type-Options: nosniff');
     header('X-Frame-Options: SAMEORIGIN');
     header('Referrer-Policy: same-origin');
-    header('Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()');
+    header('Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=()');
     header('Cross-Origin-Opener-Policy: same-origin');
     header('Cross-Origin-Resource-Policy: same-origin');
     header_remove('X-Powered-By');
@@ -95,7 +95,7 @@ function csp_nonce(): string
 /** Content Security Policy for HTML pages. 'unsafe-eval' is required by the standard Alpine.js build. */
 function csp_header(): string
 {
-    return "default-src 'self'; script-src 'self' 'nonce-" . csp_nonce() . "' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; "
+    return "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; "
         . "img-src 'self' data:; font-src 'self'; connect-src 'self'; manifest-src 'self'; worker-src 'self'; "
         . "object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'";
 }

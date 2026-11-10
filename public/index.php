@@ -26,7 +26,7 @@ require ROOT . '/src/auth.php';
 require ROOT . '/src/seed.php';
 require ROOT . '/src/layout.php';
 require ROOT . '/src/forms.php';
-foreach (['auth', 'landing', 'home', 'content', 'campaign', 'idea', 'categories', 'resources', 'analytics', 'account', 'notes', 'export', 'search'] as $page) {
+foreach (['auth', 'landing', 'changelog', 'home', 'content', 'campaign', 'idea', 'categories', 'resources', 'analytics', 'account', 'notes', 'export', 'search'] as $page) {
     require ROOT . '/src/pages/' . $page . '.php';
 }
 
@@ -40,6 +40,7 @@ boot_session();
 $routes = [
     // --- Public (unauthenticated) ---
     ['GET',  '#^/welcome$#',                   'page_landing'],
+    ['GET',  '#^/changelog$#',                 'page_changelog'],
     ['GET',  '#^/login$#',                     'page_login'],
     ['POST', '#^/login$#',                     'action_login'],
     ['GET',  '#^/register$#',                  'page_register'],
@@ -118,7 +119,7 @@ if (preg_match('#^/public(/.*)?$#', $path, $matches)) {
     exit;
 }
 
-const PUBLIC_HANDLERS = ['page_home', 'page_landing', 'page_login', 'action_login', 'page_register', 'action_register', 'action_logout'];
+const PUBLIC_HANDLERS = ['page_home', 'page_landing', 'page_changelog', 'page_login', 'action_login', 'page_register', 'action_register', 'action_logout'];
 
 try {
     foreach ($routes as [$routeMethod, $pattern, $handler]) {

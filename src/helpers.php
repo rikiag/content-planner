@@ -4,7 +4,8 @@ declare(strict_types=1);
 defined('ROOT') || (http_response_code(403) && exit);
 
 const APP_NAME = 'Content Planner';
-const APP_VERSION = '1.0.0';
+const APP_VERSION = '1.1.0';
+const GITHUB_URL = 'https://github.com/rikiag/content-planner';
 
 /* ====================== Domain constants ====================== */
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
@@ -574,4 +575,123 @@ function reminders(): array
     $late = q("SELECT * FROM contents WHERE status!='published' AND scheduled_at IS NOT NULL AND scheduled_at < ? ORDER BY scheduled_at DESC LIMIT 5", [$now]);
     $next = q("SELECT * FROM contents WHERE status!='published' AND scheduled_at >= ? AND scheduled_at <= ? ORDER BY scheduled_at LIMIT 5", [$now, $soon]);
     return ['late' => $late, 'soon' => $next];
+}
+
+/* ====================== Changelog parser & rendering ====================== */
+const CHANGELOG_CATEGORY_META = [
+    'Added'      => ['chip' => 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300', 'dot' => 'bg-emerald-500', 'icon' => 'sparkle'],
+    'Changed'    => ['chip' => 'bg-sky-100 text-sky-700 dark:bg-sky-500/20 dark:text-sky-300',                 'dot' => 'bg-sky-500',     'icon' => 'refresh'],
+    'Fixed'      => ['chip' => 'bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300',         'dot' => 'bg-amber-500',   'icon' => 'check'],
+    'Removed'    => ['chip' => 'bg-slate-200 text-slate-700 dark:bg-slate-500/25 dark:text-slate-200',         'dot' => 'bg-slate-400',   'icon' => 'trash'],
+    'Security'   => ['chip' => 'bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300',             'dot' => 'bg-rose-500',    'icon' => 'shield'],
+    'Deprecated' => ['chip' => 'bg-violet-100 text-violet-700 dark:bg-violet-500/20 dark:text-violet-300',     'dot' => 'bg-violet-500',  'icon' => 'clock'],
+    'Upgrade'    => ['chip' => 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300',             'dot' => 'bg-blue-500',    'icon' => 'terminal'],
+];
+
+function changelog_category_meta(string $category): array
+{
+    return CHANGELOG_CATEGORY_META[$category] ?? [
+        'chip' => 'bg-soft text-muted',
+        'dot'  => 'bg-slate-400',
+        'icon' => 'sparkle',
+    ];
+}
+
+/**
+ * Safely format a single changelog bullet line:
+ * escapes all HTML first, then converts **bold** and `code` spans.
+ */
+function format_changelog_line(string $text): string
+{
+    $escaped = e($text);
+    $escaped = (string) preg_replace('/\*\*(.+?)\*\*/', '<strong class="font-bold text-ink">$1</strong>', $escaped);
+    $escaped = (string) preg_replace('/`([^`]+)`/', '<code class="rounded-md bg-soft px-1.5 py-0.5 font-mono text-[11px] font-bold text-brand">$1</code>', $escaped);
+    return $escaped;
+}
+
+/**
+ * Parse root CHANGELOG.md (Keep a Changelog format) into structured release entries.
+ *
+ * @param bool $includeUnreleased Whether to include non-empty [Unreleased] section
+ * @param int|null $limit Maximum number of releases to return
+ * @return array<int, array{version:string, is_unreleased:bool, date:string, date_fmt:string, image:?array{alt:string,src:string}, categories:array<string, list<string>>}>
+ */
+function parse_changelog(bool $includeUnreleased = false, ?int $limit = null): array
+{
+    $file = ROOT . '/CHANGELOG.md';
+    if (!is_file($file)) {
+        return [];
+    }
+    $lines = file($file, FILE_IGNORE_NEW_LINES) ?: [];
+    $releases = [];
+    $current = null;
+    $category = null;
+
+    foreach ($lines as $rawLine) {
+        $line = trim($rawLine);
+        if ($line === '') {
+            continue;
+        }
+        // Match ## [1.1.0] - 2026-11-10 or ## [Unreleased]
+        if (preg_match('/^##\s+\[([^\]]+)\](?:\s*-\s*(\d{4}-\d{2}-\d{2}))?/', $line, $m)) {
+            if ($current !== null) {
+                $releases[] = $current;
+            }
+            $ver = trim($m[1]);
+            $date = trim($m[2] ?? '');
+            $current = [
+                'version'       => $ver,
+                'is_unreleased' => strcasecmp($ver, 'Unreleased') === 0,
+                'date'          => $date,
+                'date_fmt'      => $date !== '' ? fmt_date($date) : 'Upcoming',
+                'image'         => null,
+                'categories'    => [],
+            ];
+            $category = null;
+            continue;
+        }
+        if ($current === null) {
+            continue;
+        }
+        // Optional screenshot / GIF: ![Alt text](public/assets/images/... or assets/images/...)
+        if (preg_match('/^!\[([^\]]*)\]\(([^)]+)\)$/', $line, $m)) {
+            $imgPath = trim($m[2]);
+            if (str_starts_with($imgPath, 'public/')) {
+                $imgPath = substr($imgPath, 7);
+            }
+            $current['image'] = [
+                'alt' => trim($m[1]) ?: ('Content Planner v' . $current['version']),
+                'src' => str_starts_with($imgPath, 'http') ? $imgPath : asset($imgPath),
+            ];
+            continue;
+        }
+        // Match ### Category or inline ### Category- item
+        if (preg_match('/^###\s+([A-Za-z]+)(?:\s*-\s*(.+))?$/', $line, $m)) {
+            $category = ucfirst(strtolower(trim($m[1])));
+            $current['categories'][$category] ??= [];
+            if (!empty($m[2])) {
+                $current['categories'][$category][] = trim($m[2]);
+            }
+            continue;
+        }
+        // Match bullet item: - text or * text
+        if ($category !== null && preg_match('/^[-*]\s+(.+)$/', $line, $m)) {
+            $current['categories'][$category][] = trim($m[1]);
+        }
+    }
+    if ($current !== null) {
+        $releases[] = $current;
+    }
+
+    $filtered = array_values(array_filter($releases, function (array $r) use ($includeUnreleased): bool {
+        if ($r['is_unreleased']) {
+            return $includeUnreleased && !empty($r['categories']);
+        }
+        return !empty($r['categories']);
+    }));
+
+    if ($limit !== null && $limit > 0) {
+        return array_slice($filtered, 0, $limit);
+    }
+    return $filtered;
 }

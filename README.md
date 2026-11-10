@@ -1,6 +1,6 @@
 # Content Planner
 
-A lightweight, free, and open-source self-hosted social media content planner built with **PHP (8.2.35+ / 8.3.36+ / 8.4.27+ / 8.5.12+) · SQLite · Tailwind CSS 4 · Alpine.js 3**. Features a mobile-first UI, light/dark themes, physical multi-user SQLite workspace isolation, an interactive landing page, and Progressive Web App (PWA) support.
+A lightweight, free, and open-source self-hosted social media content planner built with **PHP (>= 8.2.35) · SQLite · Tailwind CSS 4 · Alpine.js 3**. Features a mobile-first UI, light/dark themes, physical multi-user SQLite workspace isolation, an interactive landing page, and Progressive Web App (PWA) support.
 
 - **Live Demo:** [https://rikiag.com/content-planner/](https://rikiag.com/content-planner/)
 - **Repository:** [https://github.com/rikiag/content-planner](https://github.com/rikiag/content-planner)
@@ -52,12 +52,7 @@ Open the URL in your browser and **create your first account** (leave **"Start w
 
 ### Requirements
 
-- **PHP patched against [PHP2Shell](https://nvd.nist.gov/) (`CVE-2026-109618` & `CVE-2026-109619`):**
-  - PHP **8.2.35+** (`8.2` branch)
-  - PHP **8.3.36+** (`8.3` branch)
-  - PHP **8.4.27+** (`8.4` branch)
-  - PHP **8.5.12+** (`8.5` branch or newer)
-  - *(Note: PHP 8.1 and older are End-of-Life and unpatched against PHP2Shell)*
+- **PHP >= 8.2.35**
 - PHP extensions enabled: **`pdo_sqlite`** and **`mbstring`**
 - Writable **`data/`** directory
 
@@ -65,7 +60,7 @@ Open the URL in your browser and **create your first account** (leave **"Start w
 
 ## Accounts & Security Architecture
 
-- **PHP2Shell Runtime Enforcement**: `public/index.php` verifies at startup that the PHP runtime is patched against critical **PHP2Shell** memory-corruption vulnerabilities (`PHP >= 8.2.35`, `>= 8.3.36`, `>= 8.4.27`, or `>= 8.5.12`).
+- **PHP Runtime Enforcement**: `public/index.php` verifies at startup that the PHP runtime is `PHP >= 8.2.35`.
 - **Full Authentication Flow**: sign up, sign in, sign out, change password, and delete account (`/register`, `/login`, `/account`).
 - **Physical Per-User Database Isolation**: `data/auth.sqlite` stores user accounts and login rate-limit counters, while each user gets an isolated `data/users/{id}.sqlite` workspace database in WAL mode. Queries can never cross user boundaries.
 - **Hardened Sessions & CSRF Protection**: Passwords are hashed with `password_hash()` (`PASSWORD_DEFAULT`), session IDs are regenerated on sign-in and password change, session cookies use `HttpOnly` + `SameSite=Lax` (+ `Secure` on HTTPS), every POST request requires a valid CSRF token, and authentication endpoints enforce rate limiting (5 failed attempts per 15 minutes).

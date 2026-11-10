@@ -87,7 +87,7 @@ function page_landing(): void
         [
             'icon'  => 'shield',
             'title' => 'Patched Against PHP2Shell',
-            'desc'  => 'Enforces PHP runtime versions patched against critical PHP2Shell memory-safety vulnerabilities (CVE-2026-109618 & CVE-2026-109619): PHP 8.2.35+, 8.3.36+, 8.4.27+, or 8.5.12+.',
+            'desc'  => 'Enforces a modern PHP runtime (PHP >= 8.2.35) patched against critical PHP2Shell memory-safety vulnerabilities.',
         ],
         [
             'icon'  => 'database',
@@ -251,7 +251,7 @@ function page_landing(): void
 
                     <!-- Tech & Platform Pills -->
                     <div class="mt-6 flex flex-wrap items-center justify-center gap-2 text-xs font-semibold text-muted">
-                        <span class="rounded-full bg-surface px-3 py-1.5 shadow-sm ring-1 ring-line">PHP 8.2.35+ / 8.3.36+ / 8.4.27+ / 8.5.12+</span>
+                        <span class="rounded-full bg-surface px-3 py-1.5 shadow-sm ring-1 ring-line">PHP &ge; 8.2.35</span>
                         <span class="rounded-full bg-surface px-3 py-1.5 shadow-sm ring-1 ring-line">SQLite WAL Per-User DB</span>
                         <span class="rounded-full bg-surface px-3 py-1.5 shadow-sm ring-1 ring-line">Tailwind CSS 4</span>
                         <span class="rounded-full bg-surface px-3 py-1.5 shadow-sm ring-1 ring-line">Alpine.js 3</span>
@@ -584,12 +584,9 @@ function page_landing(): void
                                 Unlike traditional multi-tenant apps that mix every user’s rows in a single shared table, Content Planner gives each user a physically separate SQLite database file (<code>data/users/{id}.sqlite</code>) and enforces a runtime patched against the critical <b>PHP2Shell</b> vulnerabilities.
                             </p>
                             <div class="mt-5 rounded-2xl bg-white/15 p-4 text-xs leading-relaxed text-white/90">
-                                <div class="font-extrabold text-emerald-300">Minimum Patched PHP Versions Enforced:</div>
-                                <div class="mt-2 grid grid-cols-2 gap-2 font-mono text-[11px]">
-                                    <span class="rounded-lg bg-slate-900/80 px-3 py-1.5">PHP 8.2 &ge; 8.2.35</span>
-                                    <span class="rounded-lg bg-slate-900/80 px-3 py-1.5">PHP 8.3 &ge; 8.3.36</span>
-                                    <span class="rounded-lg bg-slate-900/80 px-3 py-1.5">PHP 8.4 &ge; 8.4.27</span>
-                                    <span class="rounded-lg bg-slate-900/80 px-3 py-1.5">PHP 8.5 &ge; 8.5.12</span>
+                                <div class="font-extrabold text-emerald-300">Minimum PHP Version Enforced:</div>
+                                <div class="mt-2 font-mono text-[11px]">
+                                    <span class="inline-block rounded-lg bg-slate-900/80 px-3 py-1.5">PHP &ge; 8.2.35</span>
                                 </div>
                             </div>
                         </div>
@@ -676,8 +673,8 @@ cd content-planner</code></pre>
                                 <li class="flex items-start gap-3">
                                     <span class="mt-0.5 grid size-6 shrink-0 place-items-center rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20"><?= icon('check', 'size-3.5') ?></span>
                                     <div>
-                                        <b class="block text-ink">PHP Patched Against PHP2Shell</b>
-                                        <span class="text-xs text-muted">PHP <code>&ge; 8.2.35</code>, <code>&ge; 8.3.36</code>, <code>&ge; 8.4.27</code>, or <code>&ge; 8.5.12</code></span>
+                                        <b class="block text-ink">PHP &ge; 8.2.35</b>
+                                        <span class="text-xs text-muted">Modern PHP runtime patched against PHP2Shell</span>
                                     </div>
                                 </li>
                                 <li class="flex items-start gap-3">

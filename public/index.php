@@ -2,15 +2,10 @@
 declare(strict_types=1);
 
 ini_set('display_errors', '0');
-// Require a PHP version patched against PHP2Shell (CVE-2026-109618 & CVE-2026-109619; PHP 8.1 and older are EOL)
-$phpPatched = (PHP_VERSION_ID >= 80235 && PHP_VERSION_ID < 80300)
-    || (PHP_VERSION_ID >= 80336 && PHP_VERSION_ID < 80400)
-    || (PHP_VERSION_ID >= 80427 && PHP_VERSION_ID < 80500)
-    || (PHP_VERSION_ID >= 80512);
-if (!$phpPatched) {
+if (PHP_VERSION_ID < 80235) {
     http_response_code(500);
     header('Content-Type: text/plain; charset=utf-8');
-    exit('Content Planner requires a PHP version patched against PHP2Shell (PHP >= 8.2.35, >= 8.3.36, >= 8.4.27, or >= 8.5.12). Server version: ' . PHP_VERSION . '. Please upgrade your PHP version in your hosting control panel.');
+    exit('Content Planner requires PHP >= 8.2.35. Server version: ' . PHP_VERSION . '. Please upgrade your PHP version in your hosting control panel.');
 }
 
 // Built-in PHP server (php -S ... public/index.php): serve static files directly

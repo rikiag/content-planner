@@ -127,19 +127,31 @@ function exec_sql(string $sql, array $params = []): int
     return $stmt->rowCount();
 }
 
-function setting(string $key, string $default = ''): string
+function &settings_cache(): array
 {
     static $cache = null;
     if ($cache === null) {
         $cache = [];
-        foreach (q('SELECT key, value FROM settings') as $row) {
-            $cache[$row['key']] = $row['value'];
+        try {
+            foreach (q('SELECT key, value FROM settings') as $row) {
+                $cache[$row['key']] = $row['value'];
+            }
+        } catch (Throwable) {
+            $cache = [];
         }
     }
+    return $cache;
+}
+
+function setting(string $key, string $default = ''): string
+{
+    $cache = &settings_cache();
     return $cache[$key] ?? $default;
 }
 
 function save_setting(string $key, string $value): void
 {
     exec_sql('INSERT INTO settings(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value', [$key, $value]);
+    $cache = &settings_cache();
+    $cache[$key] = $value;
 }

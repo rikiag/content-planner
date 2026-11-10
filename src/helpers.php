@@ -65,6 +65,83 @@ const NOTE_COLORS = [
 
 const PRIORITIES = ['low' => 'Low', 'medium' => 'Medium', 'high' => 'High'];
 
+/** Color presets for dynamic Platforms and Statuses */
+const CATEGORY_COLORS = [
+    'violet'  => ['label' => 'Violet',  'chip' => 'bg-violet-100 text-violet-700 dark:bg-violet-500/20 dark:text-violet-300',   'dot' => 'bg-violet-500',  'tint' => 'bg-violet-100/80 dark:bg-violet-500/10'],
+    'rose'    => ['label' => 'Rose',    'chip' => 'bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300',           'dot' => 'bg-rose-500',    'tint' => 'bg-rose-100/80 dark:bg-rose-500/10'],
+    'amber'   => ['label' => 'Amber',   'chip' => 'bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300',       'dot' => 'bg-amber-500',   'tint' => 'bg-amber-100/80 dark:bg-amber-500/10'],
+    'sky'     => ['label' => 'Sky',     'chip' => 'bg-sky-100 text-sky-700 dark:bg-sky-500/20 dark:text-sky-300',               'dot' => 'bg-sky-500',     'tint' => 'bg-sky-100/80 dark:bg-sky-500/10'],
+    'emerald' => ['label' => 'Emerald', 'chip' => 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300', 'dot' => 'bg-emerald-500', 'tint' => 'bg-emerald-100/80 dark:bg-emerald-500/10'],
+    'pink'    => ['label' => 'Pink',    'chip' => 'bg-pink-100 text-pink-700 dark:bg-pink-500/20 dark:text-pink-300',           'dot' => 'bg-rose-400',    'tint' => 'bg-rose-100/80 dark:bg-rose-500/10'],
+    'blue'    => ['label' => 'Blue',    'chip' => 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300',           'dot' => 'bg-blue-500',    'tint' => 'bg-sky-100/80 dark:bg-sky-500/10'],
+    'red'     => ['label' => 'Red',     'chip' => 'bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-300',               'dot' => 'bg-rose-500',    'tint' => 'bg-rose-100/80 dark:bg-rose-500/10'],
+    'slate'   => ['label' => 'Slate',   'chip' => 'bg-slate-200 text-slate-800 dark:bg-slate-500/25 dark:text-slate-200',       'dot' => 'bg-slate-300',   'tint' => 'bg-soft'],
+    'zinc'    => ['label' => 'Zinc',    'chip' => 'bg-zinc-200 text-zinc-800 dark:bg-zinc-500/25 dark:text-zinc-200',           'dot' => 'bg-slate-300',   'tint' => 'bg-soft'],
+];
+
+const STATUS_ICONS = ['bulb', 'pencil', 'eye', 'clock', 'check', 'sparkle', 'flag', 'calendar', 'file'];
+
+/** Dynamic workspace categories with default fallbacks */
+function platforms(): array
+{
+    if (!current_user()) {
+        return PLATFORMS;
+    }
+    $raw = setting('custom_platforms');
+    if ($raw !== '') {
+        $parsed = json_decode($raw, true);
+        if (is_array($parsed) && $parsed !== []) {
+            return $parsed;
+        }
+    }
+    return PLATFORMS;
+}
+
+function formats(): array
+{
+    if (!current_user()) {
+        return FORMATS;
+    }
+    $raw = setting('custom_formats');
+    if ($raw !== '') {
+        $parsed = json_decode($raw, true);
+        if (is_array($parsed) && $parsed !== []) {
+            return array_values($parsed);
+        }
+    }
+    return FORMATS;
+}
+
+function pillars(): array
+{
+    if (!current_user()) {
+        return PILLARS;
+    }
+    $raw = setting('custom_pillars');
+    if ($raw !== '') {
+        $parsed = json_decode($raw, true);
+        if (is_array($parsed) && $parsed !== []) {
+            return array_values($parsed);
+        }
+    }
+    return PILLARS;
+}
+
+function statuses(): array
+{
+    if (!current_user()) {
+        return STATUSES;
+    }
+    $raw = setting('custom_statuses');
+    if ($raw !== '') {
+        $parsed = json_decode($raw, true);
+        if (is_array($parsed) && $parsed !== []) {
+            return $parsed;
+        }
+    }
+    return STATUSES;
+}
+
 /* ====================== Escaping, URLs, and request parsing ====================== */
 function e(mixed $val): string
 {
@@ -197,16 +274,40 @@ function start_app_session(): void
     }
 }
 
+function is_ajax(): bool
+{
+    $xhr = strtolower((string) ($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '')) === 'xmlhttprequest';
+    $acc = str_contains(strtolower((string) ($_SERVER['HTTP_ACCEPT'] ?? '')), 'application/json');
+    return $xhr || $acc || input('_ajax') === '1';
+}
+
+function json_out(array $data, int $code = 200): never
+{
+    http_response_code($code);
+    header('Content-Type: application/json; charset=utf-8');
+    header('Cache-Control: private, no-store');
+    echo json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    exit;
+}
+
+function csrf_token(): string
+{
+    return (string) ($_SESSION['csrf'] ?? '');
+}
+
 function csrf_field(): string
 {
-    return '<input type="hidden" name="_csrf" value="' . e($_SESSION['csrf'] ?? '') . '">';
+    return '<input type="hidden" name="_csrf" value="' . e(csrf_token()) . '">';
 }
 
 function csrf_verify(): void
 {
-    $token = (string) ($_POST['_csrf'] ?? '');
+    $token = (string) ($_POST['_csrf'] ?? $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '');
     $expected = (string) ($_SESSION['csrf'] ?? '');
     if ($expected === '' || !hash_equals($expected, $token)) {
+        if (is_ajax()) {
+            json_out(['ok' => false, 'error' => 'Session expired. Please reload the page and try again.'], 419);
+        }
         http_response_code(419);
         exit('Session expired. Please reload the page and try again.');
     }
@@ -334,13 +435,61 @@ function clamp(int $v, int $min, int $max): int
 /* ====================== UI micro-components ====================== */
 function platform_chip(string $p, bool $full = false): string
 {
-    $m = PLATFORMS[$p] ?? ['abbr' => mb_strtoupper(mb_substr($p, 0, 2)), 'cls' => 'bg-slate-200 text-slate-700'];
+    $plats = platforms();
+    $m = $plats[$p] ?? ['abbr' => mb_strtoupper(mb_substr($p, 0, 2)), 'cls' => 'bg-slate-200 text-slate-700 dark:bg-slate-500/25 dark:text-slate-200'];
     return '<span class="chip ' . $m['cls'] . '">' . e($full ? $p : $m['abbr']) . '</span>';
 }
 
 function platform_abbr(string $p): string
 {
-    return PLATFORMS[$p]['abbr'] ?? mb_strtoupper(mb_substr($p, 0, 2));
+    $plats = platforms();
+    return $plats[$p]['abbr'] ?? mb_strtoupper(mb_substr($p, 0, 2));
+}
+
+function content_payload(array $c): array
+{
+    $plats = platforms();
+    $stats = statuses();
+    $pMeta = $plats[$c['platform']] ?? ['abbr' => mb_strtoupper(mb_substr((string) $c['platform'], 0, 2)), 'cls' => 'bg-slate-200 text-slate-700 dark:bg-slate-500/25 dark:text-slate-200'];
+    $sMeta = $stats[$c['status']] ?? ['label' => ucfirst((string) $c['status']), 'chip' => 'bg-slate-200 text-slate-700 dark:bg-slate-500/25 dark:text-slate-200', 'dot' => 'bg-slate-400'];
+    $schedTs = ts($c['scheduled_at'] ?? null);
+    return [
+        'id'             => (int) $c['id'],
+        'title'          => (string) $c['title'],
+        'platform'       => (string) $c['platform'],
+        'platform_abbr'  => (string) $pMeta['abbr'],
+        'platform_cls'   => (string) $pMeta['cls'],
+        'format'         => (string) $c['format'],
+        'pillar'         => (string) ($c['pillar'] ?? ''),
+        'status'         => (string) $c['status'],
+        'status_label'   => (string) $sMeta['label'],
+        'status_chip'    => (string) $sMeta['chip'],
+        'status_dot'     => (string) $sMeta['dot'],
+        'campaign_id'    => $c['campaign_id'] ? (int) $c['campaign_id'] : null,
+        'campaign_name'  => (string) ($c['campaign_name'] ?? ''),
+        'scheduled_at'   => (string) ($c['scheduled_at'] ?? ''),
+        'scheduled_fmt'  => fmt_dt($c['scheduled_at'] ?? null),
+        'scheduled_date' => $schedTs ? date('Y-m-d', $schedTs) : '',
+        'scheduled_time' => $schedTs ? date('H:i', $schedTs) : '',
+        'published_at'   => (string) ($c['published_at'] ?? ''),
+        'published_fmt'  => !empty($c['published_at']) ? fmt_dt($c['published_at']) : '',
+        'progress'       => clamp((int) ($c['progress'] ?? 0), 0, 100),
+        'caption'        => (string) ($c['caption'] ?? ''),
+        'hashtags'       => (string) ($c['hashtags'] ?? ''),
+        'post_url'       => (string) ($c['post_url'] ?? ''),
+        'views'          => (int) ($c['views'] ?? 0),
+        'views_fmt'      => fmt_k((int) ($c['views'] ?? 0)),
+        'likes'          => (int) ($c['likes'] ?? 0),
+        'likes_fmt'      => fmt_k((int) ($c['likes'] ?? 0)),
+        'comments'       => (int) ($c['comments'] ?? 0),
+        'comments_fmt'   => fmt_k((int) ($c['comments'] ?? 0)),
+        'shares'         => (int) ($c['shares'] ?? 0),
+        'shares_fmt'     => fmt_k((int) ($c['shares'] ?? 0)),
+        'saves'          => (int) ($c['saves'] ?? 0),
+        'saves_fmt'      => fmt_k((int) ($c['saves'] ?? 0)),
+        'er_fmt'         => fmt_pct(er($c)),
+        'is_overdue'     => is_overdue($c),
+    ];
 }
 
 /** SVG progress ring. $center may contain trusted HTML. */

@@ -9,7 +9,7 @@ function export_dataset(string $name): array
     return match ($name) {
         'content' => [
             ['Title', 'Platform', 'Format', 'Pillar', 'Status', 'Campaign', 'Scheduled At', 'Published At', 'Progress %', 'Views', 'Likes', 'Comments', 'Shares', 'Saves', 'ER %', 'Post URL'],
-            array_map(fn($c) => [$c['title'], $c['platform'], $c['format'], $c['pillar'], STATUSES[$c['status']]['label'] ?? $c['status'], $c['campaign_name'], $c['scheduled_at'], $c['published_at'], $c['progress'], $c['views'], $c['likes'], $c['comments'], $c['shares'], $c['saves'], number_format(er($c), 2, '.', ''), $c['post_url']],
+            array_map(fn($c) => [$c['title'], $c['platform'], $c['format'], $c['pillar'], statuses()[$c['status']]['label'] ?? $c['status'], $c['campaign_name'], $c['scheduled_at'], $c['published_at'], $c['progress'], $c['views'], $c['likes'], $c['comments'], $c['shares'], $c['saves'], number_format(er($c), 2, '.', ''), $c['post_url']],
                 q('SELECT c.*, ca.name AS campaign_name FROM contents c LEFT JOIN campaigns ca ON ca.id=c.campaign_id ORDER BY c.scheduled_at')),
         ],
         'campaigns' => [

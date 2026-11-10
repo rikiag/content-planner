@@ -26,7 +26,7 @@ require ROOT . '/src/auth.php';
 require ROOT . '/src/seed.php';
 require ROOT . '/src/layout.php';
 require ROOT . '/src/forms.php';
-foreach (['auth', 'landing', 'home', 'content', 'campaign', 'idea', 'resources', 'analytics', 'account', 'notes', 'export', 'search'] as $page) {
+foreach (['auth', 'landing', 'home', 'content', 'campaign', 'idea', 'categories', 'resources', 'analytics', 'account', 'notes', 'export', 'search'] as $page) {
     require ROOT . '/src/pages/' . $page . '.php';
 }
 
@@ -64,6 +64,7 @@ $routes = [
     ['GET',  '#^/campaigns/(\d+)$#',           'page_campaign_detail'],
     ['GET',  '#^/campaigns/(\d+)/edit$#',      'page_campaign_form'],
     ['POST', '#^/campaigns/(\d+)/edit$#',      'action_campaign_save'],
+    ['POST', '#^/campaigns/(\d+)/status$#',    'action_campaign_status'],
     ['POST', '#^/campaigns/(\d+)/delete$#',    'action_campaign_delete'],
 
     ['GET',  '#^/ideas$#',                     'page_ideas'],
@@ -73,6 +74,9 @@ $routes = [
     ['POST', '#^/ideas/(\d+)/status$#',        'action_idea_status'],
     ['POST', '#^/ideas/(\d+)/convert$#',       'action_idea_to_content'],
     ['POST', '#^/ideas/(\d+)/delete$#',        'action_idea_delete'],
+
+    ['GET',  '#^/categories$#',                'page_categories'],
+    ['POST', '#^/categories$#',                'action_categories_save'],
 
     ['GET',  '#^/resources$#',                 'page_resources'],
     ['GET',  '#^/resources/new$#',             'page_resource_form'],

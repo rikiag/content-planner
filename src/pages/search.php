@@ -38,7 +38,7 @@ function page_search(): void
             <?= empty_state('search', 'No results found', 'Could not find “' . $s . '”. Try a shorter or different keyword.') ?>
         <?php else: ?>
             <p class="mb-4 text-xs text-muted"><?= $total ?> results for “<b class="text-ink"><?= e($s) ?></b>”</p>
-            <?= $group('Content Plan', 'calendar', $res['content'], fn($c) => $link('/content/' . $c['id'], $c['title'], $c['format'] . ' · ' . fmt_dt($c['scheduled_at']) . ' · ' . (STATUSES[$c['status']]['label'] ?? ''), '<span class="grid size-9 shrink-0 place-items-center rounded-xl text-[10px] font-extrabold ' . (PLATFORMS[$c['platform']]['cls'] ?? 'bg-soft') . '">' . e(platform_abbr($c['platform'])) . '</span>')) ?>
+            <?= $group('Content Plan', 'calendar', $res['content'], fn($c) => $link('/content/' . $c['id'], $c['title'], $c['format'] . ' · ' . fmt_dt($c['scheduled_at']) . ' · ' . (statuses()[$c['status']]['label'] ?? $c['status']), '<span class="grid size-9 shrink-0 place-items-center rounded-xl text-[10px] font-extrabold ' . (platforms()[$c['platform']]['cls'] ?? 'bg-soft') . '">' . e(platform_abbr($c['platform'])) . '</span>')) ?>
             <?= $group('Campaigns', 'flag', $res['campaigns'], fn($c) => $link('/campaigns/' . $c['id'], $c['name'], CAMPAIGN_STATUSES[$c['status']]['label'] ?? '')) ?>
             <?= $group('Idea Bank', 'bulb', $res['ideas'], fn($i) => $link('/ideas/' . $i['id'] . '/edit', $i['title'], $i['pillar'] ?: 'No pillar')) ?>
             <?= $group('Resources', 'folder', $res['resources'], fn($r) => $link('/resources/' . $r['id'] . '/edit', $r['title'], (RESOURCE_TYPES[$r['type']]['label'] ?? '') . ($r['tag'] ? ' · ' . $r['tag'] : ''))) ?>

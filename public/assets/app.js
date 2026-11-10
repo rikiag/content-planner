@@ -167,7 +167,7 @@
       },
     });
 
-    /* ----- PWA installation ----- */
+    /* -----PWA installation ----- */
     A.store('pwa', {
       can: !!deferredInstall,
       init() { installListeners.add(() => { this.can = !!deferredInstall; }); },
@@ -178,6 +178,26 @@
         deferredInstall = null; this.can = false;
       },
     });
+
+    /* ----- Release / Changelog "New" indicator (localStorage) ----- */
+    const VER_KEY = 'cp-seen-version';
+    const currentVer = document.body?.dataset.version || '';
+    const readSeenVer = () => { try { return localStorage.getItem(VER_KEY) || ''; } catch { return ''; } };
+    A.store('changelog', {
+      current: currentVer,
+      seen: readSeenVer(),
+      get hasNew() {
+        return !!this.current && this.seen !== this.current;
+      },
+      markSeen() {
+        if (!this.current) return;
+        this.seen = this.current;
+        try { localStorage.setItem(VER_KEY, this.current); } catch { /* private mode */ }
+      },
+    });
+    if (/\/changelog\/?$/.test(location.pathname)) {
+      A.store('changelog').markSeen();
+    }
 
     /* ----- $copy('text') ----- */
     A.magic('copy', () => async (text) => {
@@ -899,7 +919,8 @@
   if ('serviceWorker' in navigator && (location.protocol === 'https:' || ['localhost', '127.0.0.1'].includes(location.hostname))) {
     addEventListener('load', () => {
       const b = document.body.dataset.base || base;
-      navigator.serviceWorker.register(b + '/sw.js', { scope: b + '/' }).catch(() => {});
+      const v = document.body.dataset.version || '1.1.0';
+      navigator.serviceWorker.register(`${b}/sw.js?v=${encodeURIComponent(v)}`, { scope: b + '/' }).catch(() => {});
     });
   }
 })();

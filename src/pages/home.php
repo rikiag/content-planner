@@ -14,8 +14,11 @@ function continue_card(array $c): string
         default          => 'from-violet-500 to-indigo-600',
     };
     $prog = clamp((int) $c['progress'], 0, 100);
+    $payload = content_payload($c);
     ob_start(); ?>
-    <a href="<?= e(url('/content/' . $c['id'])) ?>" class="group flex items-center gap-3 rounded-[1.4rem] bg-white/70 p-2.5 pr-3 shadow-sm transition hover:shadow-md dark:bg-white/5 sm:gap-4">
+    <a href="<?= e(url('/content/' . $c['id'])) ?>"
+        @click.prevent="$store.contentModal.show(<?= e(json_encode($payload, JSON_UNESCAPED_UNICODE)) ?>)"
+        class="group flex items-center gap-3 rounded-[1.4rem] bg-white/70 p-2.5 pr-3 shadow-sm transition hover:shadow-md dark:bg-white/5 sm:gap-4">
         <span class="grid size-[4.5rem] shrink-0 place-items-center rounded-2xl bg-linear-to-br <?= $grad ?> text-center text-white shadow-md sm:size-20">
             <span class="grid place-items-center gap-0.5"><?= icon('file', 'size-6') ?><span class="text-[10px] font-bold leading-none"><?= e($c['format']) ?> · <?= e(platform_abbr($c['platform'])) ?></span></span>
         </span>
@@ -44,6 +47,8 @@ function page_home(): void
     }
     $month = date('Y-m');
     $pd = pub_date_sql();
+    $allStatuses = statuses();
+    $allPillars = pillars();
 
     // ---- Monthly progress ----
     $monthTotal = (int) qv("SELECT COUNT(*) FROM contents WHERE substr(COALESCE(scheduled_at, created_at),1,7) = ?", [$month]);
@@ -59,85 +64,122 @@ function page_home(): void
     $days = array_flip(published_days());
     $streak = streak_days();
 
-    // ---- Quick navigation tiles ----
-    $overdue = overdue_count();
-    $tiles = [
-        ['Content',      '/content',   'calendar', 'text-blue-600',    $overdue],
-        ['Campaigns',    '/campaigns', 'flag',     'text-orange-600',  0],
-        ['Idea Bank',    '/ideas',     'bulb',     'text-amber-500',   new_ideas_count()],
-        ['Resources',    '/resources', 'folder',   'text-emerald-600', 0],
-        ['Analytics',    '/analytics', 'chart',    'text-violet-600',  0],
-        ['Account',      '/account',   'users',    'text-rose-600',    0],
-        ['Export Sheet', '/export',    'sheet',    'text-green-600',   0],
-        ['Notes',        '/notes',     'note',     'text-yellow-600',  0],
-    ];
-
     // ---- Continue working ----
     $cont = q("SELECT c.*, ca.name AS campaign_name FROM contents c LEFT JOIN campaigns ca ON ca.id=c.campaign_id
-               WHERE c.status IN ('draft','review','idea') ORDER BY (c.scheduled_at IS NULL), c.scheduled_at ASC LIMIT 3");
+               WHERE c.status != 'published' ORDER BY (c.scheduled_at IS NULL), c.scheduled_at ASC LIMIT 3");
     $firstOpen = $cont[0]['id'] ?? null;
 
     // ---- Pipeline ----
     $pipe = [];
-    foreach (array_keys(STATUSES) as $s) {
+    foreach (array_keys($allStatuses) as $s) {
         $pipe[$s] = [
             'count' => (int) qv('SELECT COUNT(*) FROM contents WHERE status=?', [$s]),
-            'items' => q('SELECT id,title FROM contents WHERE status=? ORDER BY (scheduled_at IS NULL), scheduled_at DESC LIMIT 2', [$s]),
+            'items' => q('SELECT c.*, ca.name AS campaign_name FROM contents c LEFT JOIN campaigns ca ON ca.id=c.campaign_id WHERE c.status=? ORDER BY (c.scheduled_at IS NULL), c.scheduled_at DESC LIMIT 2', [$s]),
         ];
     }
 
     // ---- Top content this month ----
-    $top = q("SELECT * FROM contents WHERE status='published' AND substr($pd,1,7)=? ORDER BY views DESC LIMIT 5", [$month]);
+    $top = q("SELECT c.*, ca.name AS campaign_name FROM contents c LEFT JOIN campaigns ca ON ca.id=c.campaign_id WHERE c.status='published' AND substr(COALESCE(c.published_at, c.scheduled_at, c.created_at),1,7)=? ORDER BY c.views DESC LIMIT 5", [$month]);
 
     ob_start(); ?>
 <div class="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_19.5rem]">
 
     <!-- ================= Left column ================= -->
-    <div class="flex min-w-0 flex-col gap-6">
+    <div class="flex min-w-0 flex-col gap-5">
 
-        <!-- Hero progress -->
-        <section class="relative overflow-hidden rounded-[1.75rem] bg-linear-to-br from-hero to-hero2 p-5 text-white shadow-card sm:p-7" aria-labelledby="hero-t">
+        <!-- Compact Hero progress -->
+        <section class="relative overflow-hidden rounded-3xl bg-linear-to-br from-hero to-hero2 p-4 text-white shadow-card sm:p-5" aria-labelledby="hero-t">
             <div class="pointer-events-none absolute -right-10 -top-16 size-56 rounded-full bg-blue-400/10 blur-2xl"></div>
-            <div class="relative flex items-center gap-4 sm:gap-6">
-                <?= ring($monthPct, 92, 11, '<span class="text-xl font-extrabold">' . $monthPct . '%</span>', 'text-emerald-400', 'text-white/15') ?>
-                <div class="min-w-0 flex-1">
-                    <p class="text-[11px] font-semibold text-white/70"><?= e(setting('studio', 'Move Studio')) ?></p>
-                    <h2 id="hero-t" class="text-xl font-extrabold leading-tight tracking-tight sm:text-2xl"><?= e($monthName) ?> Content Progress</h2>
-                    <p class="mt-1 text-base font-bold sm:text-lg"><span class="text-xl font-extrabold text-emerald-400 sm:text-2xl"><?= $monthDone ?></span> of <?= $monthTotal ?> posts <span class="text-amber-300">published</span></p>
-                    <div class="bar-track mt-2.5 max-w-sm !bg-white/15"><div class="h-full rounded-full bg-emerald-400" style="width:<?= $monthPct ?>%"></div></div>
-                    <p class="mt-2 text-[11px] text-white/80 sm:text-xs">
-                        <?= $remaining > 0
-                            ? $remaining . ' more post' . ($remaining === 1 ? '' : 's') . ' to reach this week’s goal!'
-                            : 'Weekly goal achieved. Great momentum!' ?>
-                    </p>
+            <div class="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div class="flex min-w-0 flex-1 items-center gap-3.5 sm:gap-4">
+                    <?= ring($monthPct, 68, 8, '<span class="text-sm font-extrabold">' . $monthPct . '%</span>', 'text-emerald-400', 'text-white/15') ?>
+                    <div class="min-w-0 flex-1">
+                        <p class="text-[11px] font-semibold text-white/70"><?= e(setting('studio', 'Move Studio')) ?></p>
+                        <h2 id="hero-t" class="text-base font-extrabold leading-tight tracking-tight sm:text-lg"><?= e($monthName) ?> Content Progress</h2>
+                        <p class="mt-0.5 text-xs font-bold sm:text-sm"><span class="text-base font-extrabold text-emerald-400 sm:text-lg"><?= $monthDone ?></span> of <?= $monthTotal ?> posts <span class="text-amber-300">published</span></p>
+                        <div class="bar-track mt-1.5 max-w-xs !bg-white/15"><div class="h-full rounded-full bg-emerald-400" style="width:<?= $monthPct ?>%"></div></div>
+                        <p class="mt-1 text-[11px] text-white/80">
+                            <?= $remaining > 0
+                                ? $remaining . ' more post' . ($remaining === 1 ? '' : 's') . ' to reach this week’s goal!'
+                                : 'Weekly goal achieved. Great momentum!' ?>
+                        </p>
+                    </div>
                 </div>
-            </div>
-            <div class="relative mt-5 flex justify-end sm:mt-1">
-                <a href="<?= e(url($firstOpen ? '/content/' . $firstOpen : '/content/new')) ?>" class="inline-flex w-full items-center justify-center gap-3 rounded-2xl border-2 border-blue-400 bg-blue-500/20 py-2.5 pl-5 pr-2.5 text-sm font-bold shadow-lg backdrop-blur transition hover:bg-blue-500/35 active:scale-[.98] sm:w-auto">
-                    Continue Working <span class="grid size-8 place-items-center rounded-lg bg-slate-900/80"><?= icon('arrow-right', 'size-4') ?></span>
-                </a>
+                <div class="shrink-0">
+                    <a href="<?= e(url($firstOpen ? '/content/' . $firstOpen : '/content/new')) ?>" class="inline-flex w-full items-center justify-center gap-2.5 rounded-2xl border-2 border-blue-400 bg-blue-500/20 py-2 pl-4 pr-2 text-xs font-bold shadow-lg backdrop-blur transition hover:bg-blue-500/35 active:scale-[.98] sm:w-auto">
+                        Continue Working <span class="grid size-7 place-items-center rounded-lg bg-slate-900/80"><?= icon('arrow-right', 'size-3.5') ?></span>
+                    </a>
+                </div>
             </div>
         </section>
 
-        <!-- Main menu -->
-        <section aria-labelledby="menu-t">
-            <h2 id="menu-t" class="section-title mb-3">Quick Access</h2>
-            <div class="grid grid-cols-4 gap-2.5 sm:gap-4">
-                <?php foreach ($tiles as $i => [$label, $href, $ic, $col, $badge]): ?>
-                    <a href="<?= e(url($href)) ?>" class="group flex flex-col items-center justify-center gap-2 rounded-[1.4rem] px-1 py-4 text-center transition active:scale-95 sm:gap-2.5 sm:py-6 <?= $i === 0 ? 'bg-hero text-white shadow-lg' : 'bg-soft text-ink hover:bg-brandsoft' ?>">
-                        <span class="relative grid size-11 place-items-center rounded-2xl bg-white shadow-md transition group-hover:-translate-y-0.5 sm:size-12 dark:bg-slate-900/70 <?= $col ?>">
-                            <?= icon($ic, 'size-5.5') ?>
-                            <?php if ($badge > 0): ?><span class="absolute -right-1.5 -top-1.5 grid size-5 place-items-center rounded-full bg-rose-500 text-[10px] font-bold text-white ring-2 ring-white dark:ring-slate-900"><?= (int) $badge ?></span><?php endif; ?>
-                        </span>
-                        <span class="text-[11px] font-bold leading-tight sm:text-xs"><?= e($label) ?></span>
-                    </a>
+        <!-- Content Pipeline (moved directly below Hero Progress) -->
+        <section aria-labelledby="pipe-t">
+            <div class="mb-2.5 flex items-center justify-between">
+                <h2 id="pipe-t" class="section-title">Content Pipeline</h2>
+                <a href="<?= e(url('/content?v=board')) ?>" class="text-xs font-bold text-brand hover:underline">Open board</a>
+            </div>
+            <div class="-mx-4 flex snap-x scroll-px-4 gap-3 overflow-x-auto px-4 pb-2 no-scrollbar sm:mx-0 sm:grid sm:grid-cols-5 sm:overflow-visible sm:px-0">
+                <?php foreach ($allStatuses as $key => $m): ?>
+                    <div class="w-[44vw] max-w-52 shrink-0 snap-start rounded-[1.4rem] p-3.5 sm:w-auto sm:max-w-none <?= $m['tint'] ?>">
+                        <div class="flex items-center justify-between">
+                            <span class="grid size-9 place-items-center rounded-xl text-white <?= $m['dot'] ?>"><?= icon($m['icon'] ?? 'bulb', 'size-4.5') ?></span>
+                            <span class="text-2xl font-extrabold"><?= $pipe[$key]['count'] ?></span>
+                        </div>
+                        <a href="<?= e(url('/content?status=' . $key)) ?>" class="mt-2.5 block text-sm font-extrabold hover:underline"><?= e($m['label']) ?></a>
+                        <ul class="mt-1.5 space-y-1 text-[11px] text-muted">
+                            <?php foreach ($pipe[$key]['items'] as $it): $itPayload = content_payload($it); ?>
+                                <li class="truncate"><a href="<?= e(url('/content/' . $it['id'])) ?>" @click.prevent="$store.contentModal.show(<?= e(json_encode($itPayload, JSON_UNESCAPED_UNICODE)) ?>)" class="hover:text-ink">• <?= e($it['title']) ?></a></li>
+                            <?php endforeach; ?>
+                            <?php if (!$pipe[$key]['items']): ?><li class="opacity-70">Empty</li><?php endif; ?>
+                        </ul>
+                    </div>
                 <?php endforeach; ?>
             </div>
         </section>
 
+        <!-- Quick Idea Form -->
+        <section aria-labelledby="qidea-t">
+            <div class="mb-2.5 flex items-center justify-between">
+                <h2 id="qidea-t" class="section-title">Quick Idea</h2>
+                <a href="<?= e(url('/ideas')) ?>" class="text-xs font-bold text-brand hover:underline">Idea Bank</a>
+            </div>
+            <form method="post" action="<?= e(url('/ideas')) ?>"
+                x-data="{ title: '', pillar: '', busy: false, async submit() {
+                    if (!this.title.trim() || this.busy) return;
+                    this.busy = true;
+                    try {
+                        const fd = new FormData($el);
+                        fd.set('_ajax', '1');
+                        const r = await fetch($el.action, { method: 'POST', body: fd, headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' } });
+                        const d = await r.json();
+                        if (d && d.ok) {
+                            this.title = '';
+                            this.pillar = '';
+                            $store.toast.push(d.msg || 'Idea saved to Idea Bank.');
+                        } else {
+                            $store.toast.push((d && d.error) || 'Failed to save idea.', 'err');
+                        }
+                    } catch { $el.submit(); }
+                    finally { this.busy = false; }
+                } }"
+                @submit.prevent="submit()"
+                class="card flex flex-col gap-2 p-3 sm:flex-row sm:items-center sm:p-3.5">
+                <?= csrf_field() ?>
+                <input type="hidden" name="back" value="/">
+                <span class="hidden size-10 shrink-0 place-items-center rounded-2xl bg-amber-100 text-amber-600 sm:grid dark:bg-amber-400/15"><?= icon('bulb', 'size-5') ?></span>
+                <input name="title" x-model="title" required maxlength="160" placeholder="Capture a quick content idea…" class="input flex-1" aria-label="Quick idea title">
+                <select name="pillar" x-model="pillar" class="input sm:!w-44" aria-label="Pillar">
+                    <option value="">Pillar…</option>
+                    <?php foreach ($allPillars as $p): ?><option value="<?= e($p) ?>"><?= e($p) ?></option><?php endforeach; ?>
+                </select>
+                <button type="submit" class="btn-primary shrink-0" :disabled="busy"><?= icon('plus', 'size-4') ?>Save idea</button>
+            </form>
+        </section>
+
         <!-- Continue working -->
         <section aria-labelledby="cont-t">
-            <div class="mb-3 flex items-center justify-between">
+            <div class="mb-2.5 flex items-center justify-between">
                 <h2 id="cont-t" class="section-title">Continue Working</h2>
                 <a href="<?= e(url('/content?status=active')) ?>" class="text-xs font-bold text-accent hover:underline">View All</a>
             </div>
@@ -150,30 +192,8 @@ function page_home(): void
             <?php endif; ?>
         </section>
 
-        <!-- Pipeline -->
-        <section aria-labelledby="pipe-t">
-            <div class="mb-3 flex items-center justify-between">
-                <h2 id="pipe-t" class="section-title">Content Pipeline</h2>
-                <a href="<?= e(url('/content?v=board')) ?>" class="text-xs font-bold text-brand hover:underline">Open board</a>
-            </div>
-            <div class="-mx-4 flex snap-x scroll-px-4 gap-3 overflow-x-auto px-4 pb-2 no-scrollbar sm:mx-0 sm:grid sm:grid-cols-5 sm:overflow-visible sm:px-0">
-                <?php foreach (STATUSES as $key => $m): ?>
-                    <div class="w-[44vw] max-w-52 shrink-0 snap-start rounded-[1.4rem] p-3.5 sm:w-auto sm:max-w-none <?= $m['tint'] ?>">
-                        <div class="flex items-center justify-between">
-                            <span class="grid size-9 place-items-center rounded-xl text-white <?= $m['dot'] ?>"><?= icon($m['icon'], 'size-4.5') ?></span>
-                            <span class="text-2xl font-extrabold"><?= $pipe[$key]['count'] ?></span>
-                        </div>
-                        <a href="<?= e(url('/content?status=' . $key)) ?>" class="mt-2.5 block text-sm font-extrabold hover:underline"><?= e($m['label']) ?></a>
-                        <ul class="mt-1.5 space-y-1 text-[11px] text-muted">
-                            <?php foreach ($pipe[$key]['items'] as $it): ?>
-                                <li class="truncate"><a href="<?= e(url('/content/' . $it['id'])) ?>" class="hover:text-ink">• <?= e($it['title']) ?></a></li>
-                            <?php endforeach; ?>
-                            <?php if (!$pipe[$key]['items']): ?><li class="opacity-70">Empty</li><?php endif; ?>
-                        </ul>
-                    </div>
-                <?php endforeach; ?>
-            </div>
-        </section>
+        <!-- Analytics (replaces Quick Access) -->
+        <?= render_analytics_section() ?>
     </div>
 
     <!-- ================= Right column ================= -->
@@ -208,10 +228,10 @@ function page_home(): void
             </div>
             <?php if ($top): ?>
                 <ol class="mt-3 flex flex-col gap-1">
-                    <?php foreach ($top as $i => $c): ?>
-                        <li><a href="<?= e(url('/content/' . $c['id'])) ?>" class="flex items-center gap-2.5 rounded-2xl p-1.5 transition hover:bg-soft">
+                    <?php foreach ($top as $i => $c): $topPayload = content_payload($c); ?>
+                        <li><a href="<?= e(url('/content/' . $c['id'])) ?>" @click.prevent="$store.contentModal.show(<?= e(json_encode($topPayload, JSON_UNESCAPED_UNICODE)) ?>)" class="flex items-center gap-2.5 rounded-2xl p-1.5 transition hover:bg-soft">
                             <span class="grid size-6 shrink-0 place-items-center rounded-full text-[11px] font-extrabold <?= match ($i) { 0 => 'bg-amber-400 text-amber-950', 1 => 'bg-slate-300 text-slate-700', 2 => 'bg-orange-400 text-orange-950', default => 'text-muted' } ?>"><?= $i + 1 ?></span>
-                            <span class="grid size-8 shrink-0 place-items-center rounded-lg text-[10px] font-extrabold <?= PLATFORMS[$c['platform']]['cls'] ?? 'bg-soft' ?>"><?= e(platform_abbr($c['platform'])) ?></span>
+                            <span class="grid size-8 shrink-0 place-items-center rounded-lg text-[10px] font-extrabold <?= platforms()[$c['platform']]['cls'] ?? 'bg-soft' ?>"><?= e(platform_abbr($c['platform'])) ?></span>
                             <span class="min-w-0 flex-1 leading-tight"><b class="block truncate text-xs"><?= e($c['title']) ?></b><span class="text-[10px] text-muted"><?= e($c['format']) ?> · ER <?= e(fmt_pct(er($c))) ?></span></span>
                             <b class="text-xs"><?= e(fmt_k($c['views'])) ?></b>
                         </a></li>

@@ -60,18 +60,11 @@ function group_stats(string $col, string $from): array
     return array_map(fn($r) => [$r['k'], (int) $r['v'], fmt_k((int) $r['v']) . ' · ' . $r['n'] . ' posts', $r['v'] > 0 ? 'ER ' . fmt_pct($r['i'] / $r['v'] * 100) : ''], $rows);
 }
 
-function page_analytics(): void
+/** Render the full Analytics block (embedded inside Dashboard). */
+function render_analytics_section(): string
 {
-    $range = input('r', '30');
-    $days = ['7' => 7, '30' => 30, '90' => 90, 'all' => 3650][$range] ?? 30;
-    $range = in_array($range, ['7', '30', '90', 'all'], true) ? $range : '30';
-    $to = date('Y-m-d');
-    $from = date('Y-m-d', strtotime("-" . ($days - 1) . " days"));
-    $pFrom = date('Y-m-d', strtotime("-" . (2 * $days - 1) . " days"));
-    $pTo = date('Y-m-d', strtotime("-$days days"));
-
-    $now = kpis($from, $to);
-    $prev = kpis($pFrom, $pTo);
+    $initialRange = input('r', '30');
+    $initialRange = in_array($initialRange, ['7', '30', '90', 'all'], true) ? $initialRange : '30';
     $pd = pub_date_sql();
 
     // Weekly trend (last 8 weeks)
@@ -83,87 +76,126 @@ function page_analytics(): void
     }
     $wmax = max(1, ...array_column($weeks, 'v'));
 
-    // Best publishing days (average views per day of week)
-    $dow = q("SELECT CAST(strftime('%w', $pd) AS INTEGER) d, AVG(views) a, COUNT(*) n FROM contents WHERE status='published' AND substr($pd,1,10) >= ? GROUP BY d", [$from]);
-    $dowMap = [];
-    foreach ($dow as $r) {
-        $dowMap[(int) $r['d']] = (float) $r['a'];
-    }
-    $best = [];
-    foreach ([1, 2, 3, 4, 5, 6, 0] as $d) {
-        $best[] = [DAYS_FULL[$d], (int) ($dowMap[$d] ?? 0), $dowMap ? fmt_k((int) ($dowMap[$d] ?? 0)) . ' avg' : '', ''];
-    }
-
-    $top = q("SELECT * FROM contents WHERE status='published' AND substr($pd,1,10) >= ? ORDER BY views DESC LIMIT 8", [$from]);
-    $lbl = ['7' => 'Last 7 days', '30' => 'Last 30 days', '90' => 'Last 90 days', 'all' => 'All time'][$range];
-
-    $kpiCards = [
-        ['Views', fmt_k($now['views']), delta_chip($now['views'], $prev['views']), 'eye', 'bg-sky-100 text-sky-600 dark:bg-sky-500/20'],
-        ['Interactions', fmt_k($now['inter']), delta_chip($now['inter'], $prev['inter']), 'heart', 'bg-rose-100 text-rose-600 dark:bg-rose-500/20'],
-        ['Engagement rate', fmt_pct($now['er']), delta_chip($now['er'], $prev['er'], true), 'target', 'bg-violet-100 text-violet-600 dark:bg-violet-500/20'],
-        ['Published posts', (string) $now['n'], delta_chip($now['n'], $prev['n']), 'calendar', 'bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20'],
+    $rangesMeta = [
+        '7'   => ['days' => 7,    'tab' => '7 days',  'lbl' => 'Last 7 days'],
+        '30'  => ['days' => 30,   'tab' => '30 days', 'lbl' => 'Last 30 days'],
+        '90'  => ['days' => 90,   'tab' => '90 days', 'lbl' => 'Last 90 days'],
+        'all' => ['days' => 3650, 'tab' => 'All',     'lbl' => 'All time'],
     ];
 
     ob_start(); ?>
-    <div class="mb-4 flex items-center gap-2">
-        <div class="grid min-w-0 flex-1 grid-cols-4 rounded-full bg-surface p-1 shadow-sm sm:flex sm:flex-none" role="tablist" aria-label="Date range">
-            <?php foreach (['7' => '7 days', '30' => '30 days', '90' => '90 days', 'all' => 'All'] as $k => $l): ?>
-                <a href="<?= e(url('/analytics?r=' . $k)) ?>" role="tab" aria-selected="<?= $range === (string) $k ? 'true' : 'false' ?>" class="rounded-full px-3.5 py-2 text-center text-xs font-bold transition <?= $range === (string) $k ? 'bg-hero text-white' : 'text-muted hover:text-ink' ?>"><?= $l ?></a>
-            <?php endforeach; ?>
-        </div>
-        <a href="<?= e(url('/export/content.csv')) ?>" class="btn-ghost shrink-0 !px-3.5 !py-2 !text-xs" aria-label="Download CSV"><?= icon('download', 'size-4') ?><span class="hidden sm:inline">Download CSV</span></a>
-    </div>
-
-    <div class="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <?php foreach ($kpiCards as [$l, $v, $d, $ic, $cls]): ?>
-            <div class="card p-4">
-                <span class="grid size-9 place-items-center rounded-xl <?= $cls ?>"><?= icon($ic, 'size-4.5') ?></span>
-                <div class="mt-3 text-[11px] font-semibold text-muted"><?= e($l) ?></div>
-                <div class="text-2xl font-extrabold tracking-tight"><?= e($v) ?></div>
-                <div class="mt-0.5"><?= $d ?> <span class="text-[10px] text-muted">vs previous period</span></div>
+    <section id="analytics" aria-labelledby="ana-t"
+        x-data="{
+            range: '<?= e($initialRange) ?>',
+            setRange(r) {
+                this.range = r;
+                const u = new URL(location.href);
+                if (r === '30') u.searchParams.delete('r'); else u.searchParams.set('r', r);
+                history.replaceState({}, '', u);
+            }
+        }">
+        <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <h2 id="ana-t" class="section-title">Analytics</h2>
+            <div class="flex items-center gap-2">
+                <div class="grid grid-cols-4 rounded-full bg-surface p-1 shadow-sm sm:flex" role="tablist" aria-label="Date range">
+                    <?php foreach ($rangesMeta as $rk => $rm): ?>
+                        <button type="button" role="tab" :aria-selected="range === '<?= $rk ?>'" @click="setRange('<?= $rk ?>')"
+                            class="rounded-full px-3 py-1.5 text-center text-xs font-bold transition"
+                            :class="range === '<?= $rk ?>' ? 'bg-hero text-white' : 'text-muted hover:text-ink'"><?= e($rm['tab']) ?></button>
+                    <?php endforeach; ?>
+                </div>
+                <a href="<?= e(url('/export/content.csv')) ?>" class="btn-ghost shrink-0 !px-3.5 !py-2 !text-xs" aria-label="Download CSV"><?= icon('download', 'size-4') ?><span class="hidden sm:inline">Download CSV</span></a>
             </div>
-        <?php endforeach; ?>
-    </div>
-    <p class="mt-2 px-1 text-[11px] text-muted">Period: <?= e($lbl) ?>. Interactions = likes + comments + shares + saves.</p>
+        </div>
 
-    <div class="mt-5 grid grid-cols-1 gap-5 lg:grid-cols-2">
-        <section class="card p-5 lg:col-span-2" aria-labelledby="trend-t">
-            <h2 id="trend-t" class="section-title">Weekly views</h2>
-            <p class="text-xs text-muted">Last 8 weeks</p>
-            <div class="mt-4 flex h-44 items-end gap-2 sm:gap-4" role="img" aria-label="Weekly views bar chart">
-                <?php foreach ($weeks as $i => $w): $h = $w['v'] > 0 ? max(4, round($w['v'] / $wmax * 100)) : 2; ?>
-                    <div class="flex h-full min-w-0 flex-1 flex-col items-center justify-end gap-1.5">
-                        <span class="text-[10px] font-bold text-muted"><?= $w['v'] > 0 ? e(fmt_k($w['v'])) : '' ?></span>
-                        <div class="w-full max-w-12 rounded-t-xl <?= $i === 7 ? 'bg-accent' : 'bg-brand/70' ?>" style="height:<?= $h ?>%" title="<?= e($w['label']) ?>: <?= e(fmt_num($w['v'])) ?> views, <?= $w['n'] ?> posts"></div>
-                        <span class="whitespace-nowrap text-[9px] font-semibold text-muted sm:text-[10px]"><?= e($w["label"]) ?></span>
+        <?php foreach ($rangesMeta as $rk => $rm):
+            $days = $rm['days'];
+            $to = date('Y-m-d');
+            $from = date('Y-m-d', strtotime("-" . ($days - 1) . " days"));
+            $pFrom = date('Y-m-d', strtotime("-" . (2 * $days - 1) . " days"));
+            $pTo = date('Y-m-d', strtotime("-$days days"));
+
+            $now = kpis($from, $to);
+            $prev = kpis($pFrom, $pTo);
+
+            $dow = q("SELECT CAST(strftime('%w', $pd) AS INTEGER) d, AVG(views) a, COUNT(*) n FROM contents WHERE status='published' AND substr($pd,1,10) >= ? GROUP BY d", [$from]);
+            $dowMap = [];
+            foreach ($dow as $r) {
+                $dowMap[(int) $r['d']] = (float) $r['a'];
+            }
+            $best = [];
+            foreach ([1, 2, 3, 4, 5, 6, 0] as $d) {
+                $best[] = [DAYS_FULL[$d], (int) ($dowMap[$d] ?? 0), $dowMap ? fmt_k((int) ($dowMap[$d] ?? 0)) . ' avg' : '', ''];
+            }
+
+            $top = q("SELECT c.*, ca.name AS campaign_name FROM contents c LEFT JOIN campaigns ca ON ca.id=c.campaign_id WHERE c.status='published' AND substr(COALESCE(c.published_at, c.scheduled_at, c.created_at),1,10) >= ? ORDER BY c.views DESC LIMIT 8", [$from]);
+            $kpiCards = [
+                ['Views', fmt_k($now['views']), delta_chip($now['views'], $prev['views']), 'eye', 'bg-sky-100 text-sky-600 dark:bg-sky-500/20'],
+                ['Interactions', fmt_k($now['inter']), delta_chip($now['inter'], $prev['inter']), 'heart', 'bg-rose-100 text-rose-600 dark:bg-rose-500/20'],
+                ['Engagement rate', fmt_pct($now['er']), delta_chip($now['er'], $prev['er'], true), 'target', 'bg-violet-100 text-violet-600 dark:bg-violet-500/20'],
+                ['Published posts', (string) $now['n'], delta_chip($now['n'], $prev['n']), 'calendar', 'bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20'],
+            ];
+        ?>
+        <div x-show="range === '<?= $rk ?>'" <?= $rk !== $initialRange ? 'x-cloak' : '' ?> x-transition.opacity>
+            <div class="grid grid-cols-2 gap-3 lg:grid-cols-4">
+                <?php foreach ($kpiCards as [$l, $v, $d, $ic, $cls]): ?>
+                    <div class="card p-4">
+                        <span class="grid size-9 place-items-center rounded-xl <?= $cls ?>"><?= icon($ic, 'size-4.5') ?></span>
+                        <div class="mt-3 text-[11px] font-semibold text-muted"><?= e($l) ?></div>
+                        <div class="text-2xl font-extrabold tracking-tight"><?= e($v) ?></div>
+                        <div class="mt-0.5"><?= $d ?> <span class="text-[10px] text-muted">vs previous period</span></div>
                     </div>
                 <?php endforeach; ?>
             </div>
-        </section>
+            <p class="mt-2 px-1 text-[11px] text-muted">Period: <?= e($rm['lbl']) ?>. Interactions = likes + comments + shares + saves.</p>
 
-        <section class="card p-5"><h2 class="section-title mb-4">By platform</h2><?= ($r = group_stats('platform', $from)) ? bar_list($r) : '<p class="text-xs text-muted">No data yet.</p>' ?></section>
-        <section class="card p-5"><h2 class="section-title mb-4">By format</h2><?= ($r = group_stats('format', $from)) ? bar_list($r, 'bg-violet-500') : '<p class="text-xs text-muted">No data yet.</p>' ?></section>
-        <section class="card p-5"><h2 class="section-title mb-4">By content pillar</h2><?= ($r = group_stats('pillar', $from)) ? bar_list($r, 'bg-emerald-500') : '<p class="text-xs text-muted">No data yet.</p>' ?></section>
-        <section class="card p-5"><h2 class="section-title mb-1">Best publishing days</h2><p class="mb-4 text-xs text-muted">Average views per day of week</p><?= bar_list($best, 'bg-accent') ?></section>
+            <div class="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
+                <section class="card p-5 lg:col-span-2" aria-label="Weekly views">
+                    <h3 class="section-title">Weekly views</h3>
+                    <p class="text-xs text-muted">Last 8 weeks</p>
+                    <div class="mt-4 flex h-44 items-end gap-2 sm:gap-4" role="img" aria-label="Weekly views bar chart">
+                        <?php foreach ($weeks as $i => $w): $h = $w['v'] > 0 ? max(4, round($w['v'] / $wmax * 100)) : 2; ?>
+                            <div class="flex h-full min-w-0 flex-1 flex-col items-center justify-end gap-1.5">
+                                <span class="text-[10px] font-bold text-muted"><?= $w['v'] > 0 ? e(fmt_k($w['v'])) : '' ?></span>
+                                <div class="w-full max-w-12 rounded-t-xl <?= $i === 7 ? 'bg-accent' : 'bg-brand/70' ?>" style="height:<?= $h ?>%" title="<?= e($w['label']) ?>: <?= e(fmt_num($w['v'])) ?> views, <?= $w['n'] ?> posts"></div>
+                                <span class="whitespace-nowrap text-[9px] font-semibold text-muted sm:text-[10px]"><?= e($w["label"]) ?></span>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                </section>
 
-        <section class="card min-w-0 p-5 lg:col-span-2" aria-labelledby="top-t">
-            <h2 id="top-t" class="section-title mb-3">Top performing content</h2>
-            <?php if (!$top): ?><p class="text-xs text-muted">No published content in this period yet.</p><?php else: ?>
-                <div class="overflow-x-auto">
-                    <table class="w-full min-w-[34rem] text-left text-xs">
-                        <thead class="text-[11px] uppercase tracking-wide text-muted"><tr><th class="pb-2 pr-2 font-bold">Content</th><th class="pb-2 pr-2 text-right font-bold">Views</th><th class="pb-2 pr-2 text-right font-bold">Likes</th><th class="pb-2 pr-2 text-right font-bold">Comments</th><th class="pb-2 pr-2 text-right font-bold">Shares</th><th class="pb-2 text-right font-bold">ER</th></tr></thead>
-                        <tbody class="divide-y divide-line">
-                            <?php foreach ($top as $c): ?>
-                                <tr><td class="py-2.5 pr-2"><a href="<?= e(url('/content/' . $c['id'])) ?>" class="flex items-center gap-2 font-bold hover:text-brand"><?= platform_chip($c['platform']) ?><span class="line-clamp-1"><?= e($c['title']) ?></span></a></td>
-                                    <td class="pr-2 text-right font-bold"><?= e(fmt_k($c['views'])) ?></td><td class="pr-2 text-right"><?= e(fmt_k($c['likes'])) ?></td><td class="pr-2 text-right"><?= e(fmt_k($c['comments'])) ?></td><td class="pr-2 text-right"><?= e(fmt_k($c['shares'])) ?></td>
-                                    <td class="text-right font-bold text-emerald-600 dark:text-emerald-400"><?= e(fmt_pct(er($c))) ?></td></tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
-                </div>
-            <?php endif; ?>
-        </section>
-    </div>
+                <section class="card p-5"><h3 class="section-title mb-4">By platform</h3><?= ($r = group_stats('platform', $from)) ? bar_list($r) : '<p class="text-xs text-muted">No data yet.</p>' ?></section>
+                <section class="card p-5"><h3 class="section-title mb-4">By format</h3><?= ($r = group_stats('format', $from)) ? bar_list($r, 'bg-violet-500') : '<p class="text-xs text-muted">No data yet.</p>' ?></section>
+                <section class="card p-5"><h3 class="section-title mb-4">By content pillar</h3><?= ($r = group_stats('pillar', $from)) ? bar_list($r, 'bg-emerald-500') : '<p class="text-xs text-muted">No data yet.</p>' ?></section>
+                <section class="card p-5"><h3 class="section-title mb-1">Best publishing days</h3><p class="mb-4 text-xs text-muted">Average views per day of week</p><?= bar_list($best, 'bg-accent') ?></section>
+
+                <section class="card min-w-0 p-5 lg:col-span-2" aria-label="Top performing content">
+                    <h3 class="section-title mb-3">Top performing content</h3>
+                    <?php if (!$top): ?><p class="text-xs text-muted">No published content in this period yet.</p><?php else: ?>
+                        <div class="overflow-x-auto">
+                            <table class="w-full min-w-[34rem] text-left text-xs">
+                                <thead class="text-[11px] uppercase tracking-wide text-muted"><tr><th class="pb-2 pr-2 font-bold">Content</th><th class="pb-2 pr-2 text-right font-bold">Views</th><th class="pb-2 pr-2 text-right font-bold">Likes</th><th class="pb-2 pr-2 text-right font-bold">Comments</th><th class="pb-2 pr-2 text-right font-bold">Shares</th><th class="pb-2 text-right font-bold">ER</th></tr></thead>
+                                <tbody class="divide-y divide-line">
+                                    <?php foreach ($top as $c): $cp = content_payload($c); ?>
+                                        <tr><td class="py-2.5 pr-2"><a href="<?= e(url('/content/' . $c['id'])) ?>" @click.prevent="$store.contentModal.show(<?= e(json_encode($cp, JSON_UNESCAPED_UNICODE)) ?>)" class="flex items-center gap-2 font-bold hover:text-brand"><?= platform_chip($c['platform']) ?><span class="line-clamp-1"><?= e($c['title']) ?></span></a></td>
+                                            <td class="pr-2 text-right font-bold"><?= e(fmt_k($c['views'])) ?></td><td class="pr-2 text-right"><?= e(fmt_k($c['likes'])) ?></td><td class="pr-2 text-right"><?= e(fmt_k($c['comments'])) ?></td><td class="pr-2 text-right"><?= e(fmt_k($c['shares'])) ?></td>
+                                            <td class="text-right font-bold text-emerald-600 dark:text-emerald-400"><?= e(fmt_pct(er($c))) ?></td></tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    <?php endif; ?>
+                </section>
+            </div>
+        </div>
+        <?php endforeach; ?>
+    </section>
     <?php
-    page('Analytics', 'analytics', (string) ob_get_clean(), ['subtitle' => 'Published content performance']);
+    return (string) ob_get_clean();
+}
+
+function page_analytics(): void
+{
+    $r = input('r');
+    redirect('/' . ($r !== '' ? '?r=' . rawurlencode($r) : '') . '#analytics');
 }

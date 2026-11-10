@@ -109,20 +109,24 @@ function page_landing(): void
     $routesList = [
         ['/', 'Dashboard (or Landing Page for guests): monthly progress, quick navigation, continue working, pipeline breakdown, weekly goal, top posts'],
         ['/welcome', 'Product overview, interactive feature showcase, architecture, quick start guide, and open-source license'],
+        ['/changelog', 'Release notes & changelog parsed directly from CHANGELOG.md with category chips and security highlights'],
         ['/content', 'Content Plan: List · Board (Kanban) · Calendar views; filter by status/platform/campaign; quick inline status cycling'],
         ['/content/new, /content/{id}', 'Create or edit a content item (schedule, caption, hashtags, completion progress, performance metrics)'],
         ['/campaigns, /campaigns/{id}', 'Campaigns list and campaign detail with performance summary & assigned posts'],
         ['/ideas', 'Idea Bank: quick capture, priority/pillar tagging, one-click Turn into post conversion into content'],
+        ['/categories', 'Custom workspace categories: CRUD for Platforms, Formats, Content Pillars, and Pipeline Statuses'],
         ['/resources', 'Caption templates, hashtag sets, links, and brand assets with one-click copy'],
         ['/analytics', 'KPIs vs. previous period, 8-week view trend, breakdown by platform/format/pillar, best publishing days, top posts'],
-        ['/account', 'Profile & goals, theme switcher, PWA install prompt, JSON backup, sample data reset, account deletion'],
+        ['/account', 'Profile & goals, theme switcher, version info, PWA install prompt, JSON backup, sample data reset, account deletion'],
         ['/notes', 'Color-coded sticky notes with pinning; pinned/recent notes appear in the sidebar'],
         ['/export', 'One-click TSV copy for Google Sheets, CSV downloads (content.csv, campaigns.csv, ideas.csv), full JSON backup'],
         ['/search?q=', 'Global search across content, campaigns, ideas, resources, and notes'],
     ];
+
+    $recentReleases = parse_changelog(false, 3);
 ?>
 
-    <body data-base="<?= e(base_path()) ?>" x-data="{ mobileMenu: false, activeTab: 'views', installTab: 'cli' }" @keydown.escape.window="mobileMenu = false">
+    <body data-base="<?= e(base_path()) ?>" data-version="<?= e(APP_VERSION) ?>" x-data="{ mobileMenu: false, activeTab: 'views', installTab: 'cli' }" @keydown.escape.window="mobileMenu = false">
         <a href="#main" class="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[100] focus:rounded-xl focus:bg-surface focus:px-4 focus:py-2">Skip to content</a>
 
         <!-- ============ Top Header Banner Glow ============ -->
@@ -147,6 +151,10 @@ function page_landing(): void
                     <a href="#features" class="rounded-xl px-3 py-2 text-xs font-bold text-muted transition hover:bg-soft hover:text-ink">Features</a>
                     <a href="#security" class="rounded-xl px-3 py-2 text-xs font-bold text-muted transition hover:bg-soft hover:text-ink">Security</a>
                     <a href="#quickstart" class="rounded-xl px-3 py-2 text-xs font-bold text-muted transition hover:bg-soft hover:text-ink">Quick Start</a>
+                    <a href="#changelog" class="relative inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-bold text-muted transition hover:bg-soft hover:text-ink">
+                        <span>Changelog</span>
+                        <span x-show="$store.changelog.hasNew" x-cloak class="size-2 rounded-full bg-rose-500" title="New release available"></span>
+                    </a>
                     <a href="#routes" class="rounded-xl px-3 py-2 text-xs font-bold text-muted transition hover:bg-soft hover:text-ink">Routes</a>
                     <a href="#license" class="rounded-xl px-3 py-2 text-xs font-bold text-muted transition hover:bg-soft hover:text-ink">License</a>
                 </nav>
@@ -190,6 +198,10 @@ function page_landing(): void
                     <a href="#features" @click="mobileMenu = false" class="rounded-xl px-3 py-2 text-sm font-bold text-ink hover:bg-soft">Features</a>
                     <a href="#security" @click="mobileMenu = false" class="rounded-xl px-3 py-2 text-sm font-bold text-ink hover:bg-soft">Security &amp; PHP2Shell Patch</a>
                     <a href="#quickstart" @click="mobileMenu = false" class="rounded-xl px-3 py-2 text-sm font-bold text-ink hover:bg-soft">Quick Start Guide</a>
+                    <a href="#changelog" @click="mobileMenu = false" class="flex items-center justify-between rounded-xl px-3 py-2 text-sm font-bold text-ink hover:bg-soft">
+                        <span>Changelog &amp; Releases</span>
+                        <span x-show="$store.changelog.hasNew" x-cloak class="rounded-full bg-rose-500 px-2 py-0.5 text-[10px] font-extrabold text-white">NEW</span>
+                    </a>
                     <a href="#routes" @click="mobileMenu = false" class="rounded-xl px-3 py-2 text-sm font-bold text-ink hover:bg-soft">Routes &amp; Architecture</a>
                     <a href="#license" @click="mobileMenu = false" class="rounded-xl px-3 py-2 text-sm font-bold text-ink hover:bg-soft">Free &amp; Open Source (MIT)</a>
                 </div>
@@ -708,6 +720,98 @@ config.example.php -> config.local.php</code></pre>
                 </div>
             </section>
 
+            <!-- ============ Recent Releases / Changelog Timeline ============ -->
+            <?php if (!empty($recentReleases)): ?>
+            <section id="changelog" class="mx-auto max-w-5xl scroll-mt-20 py-10">
+                <div class="flex flex-wrap items-end justify-between gap-4">
+                    <div>
+                        <span class="chip bg-brandsoft text-brand">Release Notes · Single Source of Truth</span>
+                        <h2 class="mt-3 text-2xl font-extrabold tracking-tight sm:text-3xl">Latest Releases &amp; Changelog</h2>
+                        <p class="mt-1.5 text-sm text-muted">Rendered live from <code>CHANGELOG.md</code> (<a href="https://keepachangelog.com/en/1.1.0/" target="_blank" rel="noopener noreferrer" class="font-bold text-brand hover:underline">Keep a Changelog</a> · SemVer).</p>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <a href="<?= e(url('/changelog')) ?>" @click="$store.changelog.markSeen()" class="btn-soft !py-2.5 !text-xs">
+                            <?= icon('file', 'size-4') ?>
+                            <span>Full Changelog</span>
+                            <span x-show="$store.changelog.hasNew" x-cloak class="size-2 rounded-full bg-rose-500" title="New release"></span>
+                        </a>
+                        <a href="<?= e($ghUrl . '/releases') ?>" target="_blank" rel="noopener noreferrer" class="btn-dark !py-2.5 !text-xs">
+                            <?= icon('github', 'size-4') ?><span>All Releases</span>
+                        </a>
+                    </div>
+                </div>
+
+                <div class="mt-6 grid grid-cols-1 gap-5 <?= count($recentReleases) >= 3 ? 'lg:grid-cols-3' : (count($recentReleases) === 2 ? 'lg:grid-cols-2' : 'lg:grid-cols-1') ?>">
+                    <?php foreach ($recentReleases as $rIdx => $rel):
+                        $isLatest = $rIdx === 0;
+                    ?>
+                        <article class="card flex flex-col justify-between border <?= $isLatest ? 'border-brand' : 'border-line' ?> p-5 sm:p-6">
+                            <div>
+                                <!-- Header -->
+                                <div class="flex flex-wrap items-center justify-between gap-2 border-b border-line pb-3.5">
+                                    <div class="flex items-center gap-2">
+                                        <a href="<?= e(url('/changelog#v' . $rel['version'])) ?>" @click="$store.changelog.markSeen()" class="text-lg font-extrabold hover:text-brand">v<?= e($rel['version']) ?></a>
+                                        <?php if ($isLatest): ?>
+                                            <span class="chip bg-brand text-white"><?= icon('sparkle', 'size-3.5') ?>Latest</span>
+                                        <?php endif; ?>
+                                        <?php if (isset($rel['categories']['Security'])): ?>
+                                            <span class="chip bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300"><?= icon('shield', 'size-3.5') ?>Security</span>
+                                        <?php endif; ?>
+                                    </div>
+                                    <?php if ($rel['date'] !== ''): ?>
+                                        <time datetime="<?= e($rel['date']) ?>" class="text-xs font-semibold text-muted"><?= e($rel['date_fmt']) ?></time>
+                                    <?php endif; ?>
+                                </div>
+
+                                <!-- Optional Release Feature Screenshot -->
+                                <?php if (!empty($rel['image'])): ?>
+                                    <a href="<?= e(url('/changelog#v' . $rel['version'])) ?>" @click="$store.changelog.markSeen()" class="mt-4 block overflow-hidden rounded-2xl border border-line bg-soft2 p-1.5 transition hover:opacity-95">
+                                        <img src="<?= e($rel['image']['src']) ?>"
+                                            alt="<?= e($rel['image']['alt']) ?>"
+                                            loading="lazy"
+                                            width="700" height="490"
+                                            class="w-full rounded-xl border border-line">
+                                    </a>
+                                <?php endif; ?>
+
+                                <!-- Category Chips & Highlights -->
+                                <div class="mt-4 flex flex-col gap-3.5">
+                                    <?php foreach ($rel['categories'] as $catName => $items):
+                                        $meta = changelog_category_meta($catName);
+                                        $previewItems = array_slice($items, 0, 3);
+                                    ?>
+                                        <div>
+                                            <span class="chip <?= $meta['chip'] ?>">
+                                                <?= icon($meta['icon'], 'size-3.5') ?>
+                                                <span><?= e($catName) ?></span>
+                                            </span>
+                                            <ul class="mt-2 flex flex-col gap-1.5 text-xs leading-relaxed text-ink">
+                                                <?php foreach ($previewItems as $item): ?>
+                                                    <li class="flex items-start gap-2">
+                                                        <span class="mt-1.5 size-1.5 shrink-0 rounded-full <?= $meta['dot'] ?>"></span>
+                                                        <span><?= format_changelog_line($item) ?></span>
+                                                    </li>
+                                                <?php endforeach; ?>
+                                            </ul>
+                                        </div>
+                                    <?php endforeach; ?>
+                                </div>
+                            </div>
+
+                            <div class="mt-5 flex items-center justify-between border-t border-line pt-3.5 text-xs font-bold">
+                                <a href="<?= e(url('/changelog#v' . $rel['version'])) ?>" @click="$store.changelog.markSeen()" class="inline-flex items-center gap-1 text-brand hover:underline">
+                                    <span>Read full v<?= e($rel['version']) ?> notes</span><?= icon('arrow-right', 'size-3.5') ?>
+                                </a>
+                                <a href="<?= e($ghUrl . '/releases/tag/v' . rawurlencode($rel['version'])) ?>" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 text-muted hover:text-ink">
+                                    <span>GitHub Release</span><?= icon('external', 'size-3.5') ?>
+                                </a>
+                            </div>
+                        </article>
+                    <?php endforeach; ?>
+                </div>
+            </section>
+            <?php endif; ?>
+
             <!-- ============ Routes Reference ============ -->
             <section id="routes" class="mx-auto max-w-5xl scroll-mt-20 py-10">
                 <div class="card overflow-hidden p-5 sm:p-8">
@@ -790,11 +894,21 @@ config.example.php -> config.local.php</code></pre>
                 <div class="flex items-center gap-2.5">
                     <span class="grid size-8 place-items-center rounded-xl bg-linear-to-br from-blue-500 to-indigo-600 text-white"><?= icon('calendar-check', 'size-4.5') ?></span>
                     <span>
-                        <strong class="font-extrabold text-ink"><?= e(APP_NAME) ?></strong> · Built by
+                        <strong class="font-extrabold text-ink"><?= e(APP_NAME) ?></strong>
+                        <a href="<?= e(url('/changelog')) ?>" @click="$store.changelog.markSeen()" class="ml-1 inline-flex items-center gap-1 rounded-md bg-soft px-1.5 py-0.5 font-mono text-[10px] font-bold text-brand hover:underline">
+                            <span>v<?= e(APP_VERSION) ?></span>
+                            <span x-show="$store.changelog.hasNew" x-cloak class="size-1.5 rounded-full bg-rose-500" title="New version available"></span>
+                        </a>
+                        · Built by
                         <a href="https://rikiag.com" target="_blank" rel="noopener noreferrer" class="font-bold text-brand hover:underline">Riki Agusnaidi (rikiag)</a>
                     </span>
                 </div>
                 <div class="flex flex-wrap items-center justify-center gap-4 font-semibold">
+                    <a href="<?= e(url('/changelog')) ?>" @click="$store.changelog.markSeen()" class="inline-flex items-center gap-1 hover:text-ink">
+                        <span>Changelog</span>
+                        <span x-show="$store.changelog.hasNew" x-cloak class="size-2 rounded-full bg-rose-500" title="New release"></span>
+                    </a>
+                    <a href="<?= e($ghUrl . '/releases') ?>" target="_blank" rel="noopener noreferrer" class="hover:text-ink">Releases</a>
                     <a href="<?= e($demoUrl) ?>" target="_blank" rel="noopener noreferrer" class="hover:text-ink">Live Demo</a>
                     <a href="<?= e($ghUrl) ?>" target="_blank" rel="noopener noreferrer" class="hover:text-ink">GitHub</a>
                     <a href="<?= e($blogLicenseUrl) ?>" target="_blank" rel="noopener noreferrer" class="hover:text-ink">License Guide</a>

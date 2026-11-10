@@ -64,6 +64,25 @@ function page_account(): void
         </div>
 
         <div class="flex flex-col gap-5">
+            <section class="card p-5" aria-labelledby="ver-t" x-data>
+                <div class="flex items-start justify-between gap-3">
+                    <span class="grid size-11 place-items-center rounded-2xl bg-brandsoft text-brand"><?= icon('sparkle', 'size-5') ?></span>
+                    <span class="rounded-full bg-soft px-2.5 py-1 font-mono text-xs font-extrabold text-brand">v<?= e(APP_VERSION) ?></span>
+                </div>
+                <h2 id="ver-t" class="section-title mt-3">Version &amp; Release Notes</h2>
+                <p class="mt-1 text-xs leading-relaxed text-muted">Running <b><?= e(APP_NAME) ?> v<?= e(APP_VERSION) ?></b> (PHP <?= e(PHP_MAJOR_VERSION . '.' . PHP_MINOR_VERSION . '.' . PHP_RELEASE_VERSION) ?> · SQLite WAL · PWA Cache <code>cp-v<?= e(APP_VERSION) ?></code>).</p>
+                <div class="mt-3 grid grid-cols-2 gap-2">
+                    <a href="<?= e(url('/changelog')) ?>" @click="$store.changelog.markSeen()" class="btn-soft !px-3 !py-2 !text-xs">
+                        <?= icon('file', 'size-4') ?>
+                        <span>Changelog</span>
+                        <span x-show="$store.changelog.hasNew" x-cloak class="size-2 rounded-full bg-rose-500" title="New release notes"></span>
+                    </a>
+                    <a href="<?= e(GITHUB_URL . '/releases') ?>" target="_blank" rel="noopener noreferrer" class="btn-ghost !px-3 !py-2 !text-xs">
+                        <?= icon('github', 'size-4') ?><span>Releases</span>
+                    </a>
+                </div>
+            </section>
+
             <section class="card p-5" aria-labelledby="pwa-t">
                 <span class="grid size-11 place-items-center rounded-2xl bg-brandsoft text-brand"><?= icon('smartphone', 'size-5') ?></span>
                 <h2 id="pwa-t" class="section-title mt-3">Install as app</h2>

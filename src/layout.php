@@ -255,7 +255,7 @@ function page(string $title, string $active, string $body, array $opts = []): vo
     layout_head($isHome ? APP_NAME : $title . ' · ' . APP_NAME);
 ?>
 
-    <body class="pb-24 lg:pb-0" data-base="<?= e(base_path()) ?>"
+    <body class="pb-24 lg:pb-0" data-base="<?= e(base_path()) ?>" data-version="<?= e(APP_VERSION) ?>"
         x-data="{ drawer: false }" @keydown.escape.window="drawer = false" :class="{ 'overflow-hidden': drawer }">
         <a href="#main" class="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[100] focus:rounded-xl focus:bg-surface focus:px-4 focus:py-2">Skip to content</a>
 
@@ -269,8 +269,23 @@ function page(string $title, string $active, string $body, array $opts = []): vo
                 <div class="flex items-center gap-3 px-1">
                     <span class="grid size-11 shrink-0 place-items-center rounded-2xl bg-linear-to-br from-blue-500 to-indigo-600 text-white shadow-md"><?= icon('calendar-check', 'size-6') ?></span>
                     <div class="min-w-0 leading-tight">
-                        <div class="truncate text-[17px] font-extrabold tracking-tight"><?= e(APP_NAME) ?></div>
-                        <div class="text-[11px] text-muted">by <a href="https://rikiag.com" target="_blank" rel="noopener noreferrer" class="hover:underline">rikiag</a> · <a href="<?= e(url('/welcome')) ?>" class="hover:underline">About</a></div>
+                        <div class="flex items-center gap-1.5">
+                            <span class="truncate text-[17px] font-extrabold tracking-tight"><?= e(APP_NAME) ?></span>
+                            <a href="<?= e(url('/changelog')) ?>" @click="$store.changelog.markSeen()" class="relative inline-flex items-center gap-1 rounded-full bg-brandsoft px-2 py-0.5 text-[10px] font-extrabold text-brand hover:brightness-95" title="View changelog">
+                                <span>v<?= e(APP_VERSION) ?></span>
+                                <span x-show="$store.changelog.hasNew" x-cloak class="size-1.5 rounded-full bg-rose-500" title="New update available"></span>
+                            </a>
+                        </div>
+                        <div class="flex items-center gap-1.5 text-[11px] text-muted">
+                            <span>by <a href="https://rikiag.com" target="_blank" rel="noopener noreferrer" class="hover:underline">rikiag</a></span>
+                            <span>·</span>
+                            <a href="<?= e(url('/welcome')) ?>" class="hover:underline">About</a>
+                            <span>·</span>
+                            <a href="<?= e(url('/changelog')) ?>" @click="$store.changelog.markSeen()" class="inline-flex items-center gap-1 font-semibold hover:text-ink hover:underline">
+                                <span>What’s new</span>
+                                <span x-show="$store.changelog.hasNew" x-cloak class="size-1.5 rounded-full bg-rose-500"></span>
+                            </a>
+                        </div>
                     </div>
                     <button class="ml-auto grid size-9 place-items-center rounded-xl text-muted hover:bg-soft lg:hidden" @click="drawer = false" aria-label="Close menu"><?= icon('x', 'size-5') ?></button>
                 </div>
@@ -422,7 +437,7 @@ function auth_page(string $title, string $body): void
     layout_head($title . ' · ' . APP_NAME);
 ?>
 
-    <body class="grid min-h-dvh place-items-center px-4 py-8" x-data data-base="<?= e(base_path()) ?>">
+    <body class="grid min-h-dvh place-items-center px-4 py-8" x-data data-base="<?= e(base_path()) ?>" data-version="<?= e(APP_VERSION) ?>">
         <div class="fixed inset-x-0 top-0 -z-10 h-72 app-header [mask-image:linear-gradient(#000,transparent)]"></div>
         <button class="icon-btn fixed right-4 top-[max(1rem,env(safe-area-inset-top))] z-10 !bg-black/10 !text-ink dark:!bg-white/10" @click="$store.theme.toggle()" aria-label="Toggle light/dark theme">
             <span x-show="!$store.theme.dark"><?= icon('moon', 'size-5') ?></span><span x-show="$store.theme.dark" x-cloak><?= icon('sun', 'size-5') ?></span>
@@ -437,7 +452,7 @@ function auth_page(string $title, string $body): void
                 <p class="mt-1 text-sm text-muted">Plan, schedule, and track your social media content.</p>
             </div>
             <div class="card p-6 sm:p-8"><?= $body ?></div>
-            <p class="mt-6 text-center text-[11px] text-muted"><a href="<?= e(url('/')) ?>" class="font-semibold hover:text-ink">← Back to home</a> · Each workspace is isolated on this server.</p>
+            <p class="mt-6 text-center text-[11px] text-muted"><a href="<?= e(url('/')) ?>" class="font-semibold hover:text-ink">← Back to home</a> · <a href="<?= e(url('/changelog')) ?>" class="font-semibold hover:text-ink">v<?= e(APP_VERSION) ?> Changelog</a> · Each workspace is isolated on this server.</p>
         </main>
         <?php layout_overlays($flashes); ?>
     </body>

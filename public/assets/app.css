@@ -3,13 +3,40 @@
 @layer utilities {
   .border-b{border-bottom-style:var(--tw-border-style);border-bottom-width:1px}
   .mt-8{margin-top:calc(var(--spacing) * 8)}
+  .my-auto{margin-block:auto}
   .pt-3{padding-top:calc(var(--spacing) * 3)}
   .px-2\.5{padding-inline:calc(var(--spacing) * 2.5)}
+  .\!px-2\.5{padding-inline:calc(var(--spacing) * 2.5)!important}
+  .\!px-3{padding-inline:calc(var(--spacing) * 3)!important}
+  .\!py-1{padding-block:var(--spacing)!important}
+  .\!py-1\.5{padding-block:calc(var(--spacing) * 1.5)!important}
+  .\!w-auto{width:auto!important}
+  .w-14{width:calc(var(--spacing) * 14)}
+  .max-w-xs{max-width:20rem}
+  .max-w-\[15rem\]{max-width:15rem}
+  .max-h-\[90dvh\]{max-height:90dvh}
+  .min-h-24{min-height:calc(var(--spacing) * 24)}
+  .size-3{width:calc(var(--spacing) * 3);height:calc(var(--spacing) * 3)}
+  .size-\[68px\]{width:68px;height:68px}
+  .z-\[85\]{z-index:85}
+  .cursor-grab{cursor:grab}
+  .active\:cursor-grabbing:active{cursor:grabbing}
+  .ring-inset{--tw-ring-inset:inset}
+  .ring-brand{--tw-ring-color:var(--c-brand)}
+  .opacity-40{opacity:.4}
+  .disabled\:opacity-40:disabled{opacity:.4}
+  .bg-slate-400{background-color:var(--color-slate-400)}
+  .bg-orange-100{background-color:oklch(95.4% .038 75.164)}
+  .bg-orange-500{background-color:var(--color-orange-500)}
+  .bg-pink-500{background-color:var(--color-pink-500)}
+  .text-orange-700{color:oklch(55.3% .195 38.402)}
+  .dark\:bg-orange-500\/20:where(.dark,.dark *){background-color:color-mix(in oklab, var(--color-orange-500) 20%, transparent)}
   .scroll-mt-20{scroll-margin-top:calc(var(--spacing) * 20)}
   .text-3xl{font-size:1.875rem;line-height:2.25rem}
   .text-emerald-300{color:var(--color-emerald-300)}
   @media (min-width:40rem){
     .sm\:inline-block{display:inline-block}
+    .sm\:min-h-56{min-height:calc(var(--spacing) * 56)}
     .sm\:px-6{padding-inline:calc(var(--spacing) * 6)}
     .sm\:py-12{padding-block:calc(var(--spacing) * 12)}
     .sm\:text-left{text-align:left}

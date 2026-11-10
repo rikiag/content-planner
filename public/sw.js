@@ -4,7 +4,7 @@
  * - Non-GET requests (mutations) are never cached
  * Increment VERSION when updating the PRECACHE list.
  */
-const VERSION = 'cp-v2.1.0';
+const VERSION = 'cp-v2.2.0';
 const STATIC = `${VERSION}-static`;
 const PAGES = `${VERSION}-pages`;
 const scope = self.registration.scope;

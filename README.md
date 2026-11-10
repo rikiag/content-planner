@@ -1,9 +1,14 @@
 # Content Planner
 
+[![Version](https://img.shields.io/badge/version-v1.1.0-2563eb)](CHANGELOG.md)
+[![PHP](https://img.shields.io/badge/PHP-%3E%3D%208.2.35-777bb4)](https://www.php.net/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-10b981)](LICENSE)
+
 A lightweight, free, and open-source self-hosted social media content planner built with **PHP (>= 8.2.35) · SQLite · Tailwind CSS 4 · Alpine.js 3**. Features a mobile-first UI, light/dark themes, physical multi-user SQLite workspace isolation, an interactive landing page, and Progressive Web App (PWA) support.
 
 - **Live Demo:** [https://rikiag.com/content-planner/](https://rikiag.com/content-planner/)
 - **Repository:** [https://github.com/rikiag/content-planner](https://github.com/rikiag/content-planner)
+- **Changelog & Release Notes:** [View changelog (`CHANGELOG.md`)](CHANGELOG.md) · [GitHub Releases](https://github.com/rikiag/content-planner/releases) · [Atom Feed](https://github.com/rikiag/content-planner/releases.atom)
 - **License:** [MIT License](LICENSE)
 
 ![Content Planner Dashboard](public/assets/images/screenshot.webp)
@@ -11,6 +16,8 @@ A lightweight, free, and open-source self-hosted social media content planner bu
 ---
 
 ## Quick Start
+
+> **Latest Release: `v1.1.0`** — [View changelog (`CHANGELOG.md`)](CHANGELOG.md) for new features, security updates, and upgrade instructions.
 
 ### 1. Clone from GitHub
 
@@ -56,6 +63,13 @@ Open the URL in your browser and **create your first account** (leave **"Start w
 - PHP extensions enabled: **`pdo_sqlite`** and **`mbstring`**
 - Writable **`data/`** directory
 
+### Upgrading Existing Installations
+
+1. **Back up your workspace data** (via `/export/backup.json` in the app or by copying your `data/` directory).
+2. **Pull the latest release** (`git pull` or upload the updated release files, preserving your `data/` folder and `config.local.php`).
+3. **Check the [`Upgrade` section in `CHANGELOG.md`](CHANGELOG.md)** for any release-specific manual steps (such as database schema migrations or new keys in `config.local.php`).
+   - **Upgrading from `v1.0.0` → `v1.1.0`:** No manual database migration or `config.local.php` changes are required. Custom categories are automatically stored in the per-user `settings` table, and the Service Worker (`sw.js`) refreshes its cache automatically using `APP_VERSION`.
+
 ---
 
 ## Accounts & Security Architecture
@@ -77,14 +91,16 @@ Open the URL in your browser and **create your first account** (leave **"Start w
 | Route | Description |
 |---|---|
 | `/` | Dashboard for signed-in users (monthly progress, quick navigation, continue working, pipeline breakdown, weekly goal, top posts) or Landing Page for guests |
-| `/welcome` | Public Landing & About page showcasing features, interactive workflow preview, security architecture, quick start, and license |
+| `/welcome` | Public Landing & About page showcasing features, interactive workflow preview, security architecture, quick start, latest releases, and license |
+| `/changelog` | Release notes & changelog rendered directly from `CHANGELOG.md` (with category chips, security badges, and upgrade notes) |
 | `/content` | Content Plan: List · Board (Kanban) · Calendar views; filter by status/platform/campaign; quick inline status cycling |
 | `/content/new`, `/content/{id}` | Create or edit a content item (schedule, caption, hashtags, performance metrics) |
 | `/campaigns`, `/campaigns/{id}` | Campaigns list and campaign detail with performance summary & assigned posts |
 | `/ideas` | Idea Bank: quick capture, priority/pillar tagging, one-click **Turn into post** conversion into content |
+| `/categories` | Custom workspace categories: CRUD for Platforms, Formats, Content Pillars, and Pipeline Statuses |
 | `/resources` | Caption templates, hashtag sets, links, and brand assets with one-click copy |
 | `/analytics` | KPIs vs. previous period, 8-week view trend, breakdown by platform/format/pillar, best publishing days, top posts |
-| `/account` | Profile & goals, theme switcher, PWA install prompt, JSON backup, sample data reset, account deletion |
+| `/account` | Profile & goals, theme switcher, version info, PWA install prompt, JSON backup, sample data reset, account deletion |
 | `/notes` | Color-coded sticky notes with pinning; pinned/recent notes appear in the sidebar |
 | `/export` | One-click TSV copy for Google Sheets, CSV downloads (`content.csv`, `campaigns.csv`, `ideas.csv`), full JSON backup |
 | `/search?q=` | Global search across content, campaigns, ideas, resources, and notes |
@@ -103,7 +119,7 @@ Open the URL in your browser and **create your first account** (leave **"Start w
 
 - `public/manifest.webmanifest` and `public/sw.js` (cache-first for static assets; network-first with cache and `offline.html` fallback for pages).
 - App icons in `public/icons/` can be regenerated with `python3 tools/make_icons.py` (requires Pillow).
-- Bump `VERSION` in `public/sw.js` whenever precached assets change.
+- `APP_VERSION` in `src/helpers.php` is passed automatically when registering `sw.js?v={APP_VERSION}`, refreshing the PWA cache on every new release.
 
 ---
 

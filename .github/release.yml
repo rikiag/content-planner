@@ -1,0 +1,43 @@
+# Automatically categorize pull requests and commits in GitHub Release notes
+changelog:
+  exclude:
+    labels:
+      - ignore-for-release
+      - duplicate
+      - invalid
+      - wontfix
+  categories:
+    - title: "🔒 Security"
+      labels:
+        - security
+    - title: "✨ Added"
+      labels:
+        - feat
+        - feature
+        - enhancement
+        - added
+    - title: "🔄 Changed"
+      labels:
+        - changed
+        - refactor
+        - ui
+        - ux
+        - perf
+    - title: "🐛 Fixed"
+      labels:
+        - fix
+        - bug
+        - bugfix
+    - title: "🗑️ Removed"
+      labels:
+        - removed
+        - deprecated
+    - title: "📚 Documentation & Chore"
+      labels:
+        - docs
+        - documentation
+        - chore
+        - build
+    - title: "Other Changes"
+      labels:
+        - "*"

@@ -11,7 +11,7 @@
   /* ---------- PWA: capture install prompt event early ---------- */
   let deferredInstall = null;
   const installListeners = new Set();
-  addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredInstall = e; installListeners.forEach((f) => f()); });
+  addEventListener('beforeinstallprompt', (e) => { deferredInstall = e; installListeners.forEach((f) => f()); });
   addEventListener('appinstalled', () => { deferredInstall = null; installListeners.forEach((f) => f()); });
 
   /* ---------- Clear cached pages on logout so private data is never left behind ---------- */

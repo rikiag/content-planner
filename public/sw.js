@@ -5,7 +5,7 @@
  * Increment VERSION when updating the PRECACHE list.
  */
 const verParam = new URL(self.location.href).searchParams.get('v') || '1.1.0';
-const VERSION = `cp-v${verParam}`;
+const VERSION = `cp-v2-${verParam}`;
 const STATIC = `${VERSION}-static`;
 const PAGES = `${VERSION}-pages`;
 const scope = self.registration.scope;
@@ -64,13 +64,13 @@ self.addEventListener('fetch', (e) => {
 
   if (isStatic(url)) {
     e.respondWith(
-      caches.match(req, { ignoreSearch: true }).then((hit) => {
+      caches.match(req).then((hit) => {
         const net = fetch(req)
           .then((res) => {
             if (res.ok) caches.open(STATIC).then((c) => c.put(req, res.clone()));
             return res;
           })
-          .catch(() => hit);
+          .catch(async () => hit || (await caches.match(req, { ignoreSearch: true })));
         return hit || net;
       })
     );

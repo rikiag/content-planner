@@ -8,13 +8,13 @@ defined('ROOT') || (http_response_code(403) && exit);
 function nav_items(): array
 {
     return [
-        'home'      => ['label' => 'Dashboard', 'href' => '/',          'icon' => 'home',     'badge' => 0],
-        'content'   => ['label' => 'Content',   'href' => '/content',   'icon' => 'calendar', 'badge' => overdue_count()],
-        'campaign'  => ['label' => 'Campaigns', 'href' => '/campaigns', 'icon' => 'flag',     'badge' => 0],
-        'idea'      => ['label' => 'Idea Bank', 'href' => '/ideas',     'icon' => 'bulb',     'badge' => new_ideas_count()],
-        'resources' => ['label' => 'Resources', 'href' => '/resources', 'icon' => 'folder',   'badge' => 0],
-        'analytics' => ['label' => 'Analytics', 'href' => '/analytics', 'icon' => 'chart',    'badge' => 0],
-        'account'   => ['label' => 'Account',   'href' => '/account',   'icon' => 'users',    'badge' => 0],
+        'home'       => ['label' => 'Dashboard',  'href' => '/',           'icon' => 'home',     'badge' => 0],
+        'content'    => ['label' => 'Content',    'href' => '/content',    'icon' => 'calendar', 'badge' => overdue_count()],
+        'campaign'   => ['label' => 'Campaigns',  'href' => '/campaigns',  'icon' => 'flag',     'badge' => 0],
+        'idea'       => ['label' => 'Idea Bank',  'href' => '/ideas',      'icon' => 'bulb',     'badge' => new_ideas_count()],
+        'categories' => ['label' => 'Categories', 'href' => '/categories', 'icon' => 'tag',      'badge' => 0],
+        'resources'  => ['label' => 'Resources',  'href' => '/resources',  'icon' => 'folder',   'badge' => 0],
+        'account'    => ['label' => 'Account',    'href' => '/account',    'icon' => 'users',    'badge' => 0],
     ];
 }
 
@@ -93,6 +93,140 @@ function layout_overlays(array $flashes): void
             </div>
         </div>
     </div>
+
+    <?php if (current_user()):
+        $modalStatuses = [];
+        foreach (statuses() as $sk => $sm) {
+            $modalStatuses[] = ['key' => (string) $sk, 'label' => (string) $sm['label'], 'chip' => (string) $sm['chip'], 'dot' => (string) $sm['dot']];
+        }
+    ?>
+    <!-- Global Content Detail Pop-up Modal -->
+    <div x-data x-init='$store.contentModal.initConfig(<?= e(json_encode(["csrf" => csrf_token(), "baseUrl" => url(""), "statuses" => $modalStatuses], JSON_UNESCAPED_UNICODE)) ?>)'
+        x-cloak x-show="$store.contentModal.open" x-transition.opacity
+        @keydown.escape.window="$store.contentModal.close()"
+        class="fixed inset-0 z-[85] grid place-items-center overflow-y-auto bg-black/55 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="cd-title">
+        <template x-if="$store.contentModal.item">
+            <div x-show="$store.contentModal.open" x-transition.scale.95 @click.outside="$store.contentModal.close()" class="card my-auto flex max-h-[90dvh] w-full max-w-2xl flex-col overflow-hidden">
+                <!-- Header -->
+                <div class="flex items-start justify-between gap-3 border-b border-line p-5">
+                    <div class="flex min-w-0 flex-1 items-start gap-3">
+                        <span class="grid size-11 shrink-0 place-items-center rounded-2xl text-xs font-extrabold" :class="$store.contentModal.item.platform_cls" x-text="$store.contentModal.item.platform_abbr"></span>
+                        <div class="min-w-0 flex-1">
+                            <div class="flex flex-wrap items-center gap-1.5">
+                                <span class="chip bg-soft text-ink" x-text="$store.contentModal.item.platform"></span>
+                                <span class="chip bg-soft text-muted" x-text="$store.contentModal.item.format"></span>
+                                <template x-if="$store.contentModal.item.pillar">
+                                    <span class="chip bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300" x-text="$store.contentModal.item.pillar"></span>
+                                </template>
+                                <template x-if="$store.contentModal.item.is_overdue && $store.contentModal.item.status !== 'published'">
+                                    <span class="chip bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300">Overdue</span>
+                                </template>
+                            </div>
+                            <h2 id="cd-title" class="mt-2 text-lg font-extrabold leading-snug" x-text="$store.contentModal.item.title"></h2>
+                            <template x-if="$store.contentModal.item.campaign_name">
+                                <p class="mt-0.5 text-xs text-muted">
+                                    Campaign: <a :href="$store.contentModal.url('/campaigns/' + $store.contentModal.item.campaign_id)" class="font-bold text-brand hover:underline" x-text="$store.contentModal.item.campaign_name"></a>
+                                </p>
+                            </template>
+                        </div>
+                    </div>
+                    <button type="button" class="grid size-9 shrink-0 place-items-center rounded-xl text-muted hover:bg-soft hover:text-ink" @click="$store.contentModal.close()" aria-label="Close"><?= icon('x', 'size-5') ?></button>
+                </div>
+
+                <!-- Scrollable Body -->
+                <div class="flex flex-col gap-4 overflow-y-auto p-5">
+                    <!-- Status, Schedule & Progress -->
+                    <div class="grid grid-cols-1 gap-3 rounded-2xl bg-soft2 p-3.5 sm:grid-cols-3">
+                        <div>
+                            <span class="block text-[11px] font-semibold text-muted">Status</span>
+                            <select :value="$store.contentModal.item.status" @change="$store.contentModal.changeStatus($event.target.value)"
+                                class="mt-1 cursor-pointer appearance-none rounded-full border-0 py-1.5 pl-3 pr-3 text-xs font-bold focus:outline-2 focus:outline-brand"
+                                :class="$store.contentModal.statusChip($store.contentModal.item.status)">
+                                <template x-for="st in $store.contentModal.statuses" :key="st.key">
+                                    <option :value="st.key" :selected="st.key === $store.contentModal.item.status" class="bg-surface text-ink" x-text="st.label"></option>
+                                </template>
+                            </select>
+                        </div>
+                        <div>
+                            <span class="block text-[11px] font-semibold text-muted">Scheduled</span>
+                            <div class="mt-1.5 flex items-center gap-1.5 text-xs font-bold" :class="$store.contentModal.item.is_overdue && $store.contentModal.item.status !== 'published' ? 'text-rose-600 dark:text-rose-400' : 'text-ink'">
+                                <?= icon('clock', 'size-3.5') ?><span x-text="$store.contentModal.item.scheduled_fmt || 'Unscheduled'"></span>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="flex items-center justify-between text-[11px] font-semibold text-muted">
+                                <span>Progress</span>
+                                <b class="text-ink" x-text="$store.contentModal.item.progress + '%'"></b>
+                            </div>
+                            <div class="bar-track mt-2"><div class="h-full rounded-full bg-accent" :style="'width:' + $store.contentModal.item.progress + '%'"></div></div>
+                        </div>
+                    </div>
+
+                    <!-- Caption / Script -->
+                    <div>
+                        <div class="mb-1.5 flex items-center justify-between">
+                            <span class="text-xs font-extrabold">Caption / Script</span>
+                            <template x-if="$store.contentModal.item.caption">
+                                <button type="button" class="text-xs font-bold text-brand hover:underline" @click="$copy($store.contentModal.item.caption)"><?= icon('copy', 'size-3.5 inline') ?> Copy caption</button>
+                            </template>
+                        </div>
+                        <div class="rounded-2xl border border-line bg-soft2 p-3.5 text-xs leading-relaxed whitespace-pre-line"
+                            :class="$store.contentModal.item.caption ? 'text-ink' : 'text-muted'"
+                            x-text="$store.contentModal.item.caption || 'No caption or script added yet.'"></div>
+                    </div>
+
+                    <!-- Hashtags -->
+                    <template x-if="$store.contentModal.item.hashtags">
+                        <div>
+                            <div class="mb-1.5 flex items-center justify-between">
+                                <span class="text-xs font-extrabold">Hashtags</span>
+                                <button type="button" class="text-xs font-bold text-brand hover:underline" @click="$copy($store.contentModal.item.hashtags)"><?= icon('copy', 'size-3.5 inline') ?> Copy hashtags</button>
+                            </div>
+                            <div class="rounded-2xl border border-line bg-soft2 p-3 font-mono text-xs text-brand" x-text="$store.contentModal.item.hashtags"></div>
+                        </div>
+                    </template>
+
+                    <!-- Post URL -->
+                    <template x-if="$store.contentModal.item.post_url">
+                        <div class="flex items-center justify-between rounded-2xl border border-line bg-soft2 px-3.5 py-2.5 text-xs">
+                            <span class="truncate font-mono text-muted" x-text="$store.contentModal.item.post_url"></span>
+                            <a :href="$store.contentModal.item.post_url" target="_blank" rel="noopener noreferrer" class="ml-3 shrink-0 font-bold text-brand hover:underline"><?= icon('external', 'size-3.5 inline') ?> Open Post</a>
+                        </div>
+                    </template>
+
+                    <!-- Performance Metrics -->
+                    <div>
+                        <span class="mb-2 block text-xs font-extrabold">Performance Metrics</span>
+                        <div class="grid grid-cols-3 gap-2 text-center sm:grid-cols-6">
+                            <div class="rounded-2xl bg-soft2 p-2.5"><div class="text-[10px] text-muted">Views</div><div class="mt-0.5 text-sm font-extrabold" x-text="$store.contentModal.item.views_fmt"></div></div>
+                            <div class="rounded-2xl bg-soft2 p-2.5"><div class="text-[10px] text-muted">Likes</div><div class="mt-0.5 text-sm font-extrabold" x-text="$store.contentModal.item.likes_fmt"></div></div>
+                            <div class="rounded-2xl bg-soft2 p-2.5"><div class="text-[10px] text-muted">Comments</div><div class="mt-0.5 text-sm font-extrabold" x-text="$store.contentModal.item.comments_fmt"></div></div>
+                            <div class="rounded-2xl bg-soft2 p-2.5"><div class="text-[10px] text-muted">Shares</div><div class="mt-0.5 text-sm font-extrabold" x-text="$store.contentModal.item.shares_fmt"></div></div>
+                            <div class="rounded-2xl bg-soft2 p-2.5"><div class="text-[10px] text-muted">Saves</div><div class="mt-0.5 text-sm font-extrabold" x-text="$store.contentModal.item.saves_fmt"></div></div>
+                            <div class="rounded-2xl bg-emerald-100/80 p-2.5 dark:bg-emerald-500/15"><div class="text-[10px] text-emerald-700 dark:text-emerald-300">ER</div><div class="mt-0.5 text-sm font-extrabold text-emerald-700 dark:text-emerald-300" x-text="$store.contentModal.item.er_fmt"></div></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Footer (1 row: Delete on far left, Duplicate & Edit on right) -->
+                <div class="flex flex-wrap items-center justify-between gap-2 border-t border-line bg-soft2/50 px-5 py-3.5">
+                    <form method="post" :action="$store.contentModal.url('/content/' + $store.contentModal.item.id + '/delete')"
+                        @submit.prevent="$store.confirm.ask('Delete content “' + $store.contentModal.item.title + '”?', () => $el.submit())">
+                        <?= csrf_field() ?>
+                        <button type="submit" class="btn-ghost !px-3.5 !py-2 !text-xs !text-rose-600"><?= icon('trash', 'size-4') ?>Delete</button>
+                    </form>
+                    <div class="flex items-center gap-2">
+                        <form method="post" :action="$store.contentModal.url('/content/' + $store.contentModal.item.id + '/duplicate')">
+                            <?= csrf_field() ?>
+                            <button type="submit" class="btn-soft !px-3.5 !py-2 !text-xs"><?= icon('copy', 'size-4') ?>Duplicate</button>
+                        </form>
+                        <a :href="$store.contentModal.url('/content/' + $store.contentModal.item.id)" class="btn-primary !px-4 !py-2 !text-xs"><?= icon('pencil', 'size-4') ?>Edit Content</a>
+                    </div>
+                </div>
+            </div>
+        </template>
+    </div>
+    <?php endif; ?>
 <?php
 }
 
@@ -153,17 +287,6 @@ function page(string $title, string $active, string $body, array $opts = []): vo
                     <?php endforeach; ?>
                 </nav>
 
-                <div class="rounded-3xl bg-linear-to-br from-brandsoft to-soft p-3.5">
-                    <div class="flex items-start gap-2.5">
-                        <span class="grid size-9 shrink-0 place-items-center rounded-xl bg-amber-200 text-amber-800 dark:bg-amber-400/20 dark:text-amber-300"><?= icon('sheet', 'size-4.5') ?></span>
-                        <div class="min-w-0">
-                            <div class="text-xs font-extrabold">Export to Sheets</div>
-                            <div class="text-[11px] leading-snug text-muted">Send your content schedule &amp; performance to Google Sheets.</div>
-                        </div>
-                    </div>
-                    <a href="<?= e(url('/export')) ?>" class="btn-primary mt-3 w-full !rounded-xl !py-2 !text-xs">Export</a>
-                </div>
-
                 <div class="flex min-h-40 flex-1 flex-col rounded-3xl bg-note p-3.5 text-noteink" x-data="{ open: false }">
                     <div class="mb-2 flex items-center gap-2">
                         <span class="grid size-6 place-items-center rounded-md bg-amber-400/90 text-amber-950"><?= icon('note', 'size-3.5') ?></span>
@@ -219,9 +342,6 @@ function page(string $title, string $active, string $body, array $opts = []): vo
                         </form>
 
                         <div class="flex items-center gap-1.5 sm:gap-2 lg:ml-auto">
-                            <span class="hidden items-center gap-1.5 rounded-xl bg-white/15 px-3 py-2 text-xs font-bold sm:inline-flex" title="Consecutive posting days"><span class="text-orange-300"><?= icon('flame', 'size-4') ?></span><?= $streak ?></span>
-                            <span class="hidden items-center gap-1.5 rounded-xl bg-white/15 px-3 py-2 text-xs font-bold sm:inline-flex" title="Total views this month"><span class="text-cyan-200"><?= icon('gem', 'size-4') ?></span><?= e(fmt_k($views)) ?></span>
-
                             <!-- Reminders dropdown -->
                             <div class="sm:relative" x-data="{ open: false }" @click.outside="open = false" @keydown.escape.window="open = false">
                                 <button class="icon-btn relative" @click="open = !open" :aria-expanded="open" aria-label="Reminders">
@@ -272,7 +392,7 @@ function page(string $title, string $active, string $body, array $opts = []): vo
         <nav class="bottom-nav fixed inset-x-0 bottom-0 z-30 border-t border-line bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden" aria-label="Bottom navigation">
             <ul class="mx-auto grid max-w-lg grid-cols-5 items-end px-2 pt-1.5">
                 <?php
-                $bottom = [['home', 'Home', '/', 'home'], ['content', 'Content', '/content', 'calendar'], null, ['idea', 'Ideas', '/ideas', 'bulb'], ['analytics', 'Analytics', '/analytics', 'chart']];
+                $bottom = [['home', 'Home', '/', 'home'], ['content', 'Content', '/content', 'calendar'], null, ['campaign', 'Campaigns', '/campaigns', 'flag'], ['idea', 'Ideas', '/ideas', 'bulb']];
                 foreach ($bottom as $b):
                     if ($b === null): ?>
                         <li class="grid place-items-center pb-1.5"><a href="<?= e(url('/content/new')) ?>" class="-mt-6 grid size-14 place-items-center rounded-full bg-linear-to-br from-blue-500 to-indigo-600 text-white shadow-lg shadow-blue-500/40 ring-4 ring-[var(--c-bg)] transition active:scale-90" aria-label="New content"><?= icon('plus', 'size-7') ?></a></li>

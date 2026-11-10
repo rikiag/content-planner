@@ -43,7 +43,7 @@ function layout_head(string $title): void
         <link rel="icon" href="<?= e(url('icons/icon.svg')) ?>" type="image/svg+xml">
         <link rel="apple-touch-icon" href="<?= e(url('icons/apple-touch-icon.png')) ?>">
         <link rel="preload" href="<?= e(url('assets/fonts/plus-jakarta-sans-latin-wght-normal.woff2')) ?>" as="font" type="font/woff2" crossorigin>
-        <script nonce="<?= e(csp_nonce()) ?>">
+        <script>
             /* Apply theme before first paint to prevent flash: localStorage -> system preference */
             (function() {
                 try {
@@ -55,6 +55,47 @@ function layout_head(string $title): void
                     var m = document.querySelector('meta[name=theme-color]');
                     if (m) m.content = d ? '#12306a' : '#2160d6';
                 } catch (e) {}
+                /* Purge legacy Service Worker caches that ignored ?v= query strings */
+                if ('caches' in window) {
+                    caches.keys().then(function(keys) {
+                        var legacy = keys.filter(function(k) { return k.startsWith('cp-v1'); });
+                        if (legacy.length) {
+                            Promise.all(legacy.map(function(k) { return caches.delete(k); })).then(function() {
+                                if ('serviceWorker' in navigator) {
+                                    navigator.serviceWorker.getRegistrations().then(function(regs) {
+                                        regs.forEach(function(reg) { reg.update(); });
+                                    });
+                                }
+                                try {
+                                    if (!sessionStorage.getItem('cp-sw-v2')) {
+                                        sessionStorage.setItem('cp-sw-v2', '1');
+                                        location.reload();
+                                    }
+                                } catch (e) {}
+                            });
+                        }
+                    }).catch(function() {});
+                }
+                /* Fallback store guard if a legacy Service Worker served an older cached app.js */
+                document.addEventListener('alpine:init', function() {
+                    var A = window.Alpine;
+                    if (!A) return;
+                    if (!A.store('changelog')) {
+                        A.store('changelog', { current: '', seen: '', hasNew: false, markSeen: function() {} });
+                    }
+                    if (!A.store('contentModal')) {
+                        A.store('contentModal', {
+                            open: false, item: null, csrf: '', baseUrl: '', statuses: [],
+                            initConfig: function(c) { if (c) { this.csrf = c.csrf || ''; this.baseUrl = c.baseUrl || ''; this.statuses = c.statuses || []; } },
+                            show: function(i) { if (i) { this.item = i; this.open = true; } },
+                            close: function() { this.open = false; },
+                            url: function(p) { return (this.baseUrl || '') + p; },
+                            statusChip: function() { return 'bg-soft text-muted'; },
+                            onUpdate: function() {},
+                            changeStatus: function() {}
+                        });
+                    }
+                });
             })();
         </script>
         <link rel="stylesheet" href="<?= e(asset('assets/app.css')) ?>">

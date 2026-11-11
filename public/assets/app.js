@@ -583,7 +583,7 @@
       statuses: cfg.statuses || [],
       items: cfg.items || [],
       page: Number(cfg.page || 1),
-      perPage: Number(cfg.perPage || 8),
+      perPage: Number(cfg.perPage || 5),
       csrf: cfg.csrf || '',
       baseUrl: cfg.baseUrl || '',
 
@@ -591,6 +591,10 @@
         A.store('contentModal').onUpdate((updated) => {
           const idx = this.items.findIndex((i) => Number(i.id) === Number(updated.id));
           if (idx !== -1) this.items[idx] = { ...this.items[idx], ...updated };
+        });
+        window.addEventListener('popstate', () => {
+          const p = new URLSearchParams(location.search);
+          this.page = Math.max(1, Number(p.get('page') || 1));
         });
       },
       campaignStatusChip(k) {

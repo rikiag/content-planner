@@ -283,8 +283,16 @@ function page_campaign_form(int $id = 0): void
         . field('end_date', 'End Date', 'date', $c['end_date'])
         . '</div><div><span class="label">Color</span><div class="flex flex-wrap gap-3">' . $swatches . '</div></div>';
 
-    $del = $id ? '<div class="mx-auto mt-3 max-w-3xl text-right">' . delete_form('/campaigns/' . $id . '/delete', 'Delete this campaign?', 'Delete campaign') . '</div>' : '';
-    page($id ? 'Edit Campaign' : 'New Campaign', 'campaign', form_shell($id ? "/campaigns/$id/edit" : '/campaigns/new', $f, $id ? "/campaigns/$id" : '/campaigns') . $del, ['subtitle' => $id ? e($c['name']) : 'Create a new campaign']);
+    $leftDeleteBtn = '';
+    $hiddenDeleteForm = '';
+    if ($id) {
+        $leftDeleteBtn = '<button type="button" class="btn-ghost !text-rose-600" aria-label="Delete campaign" title="Delete campaign" x-data @click="$store.confirm.ask(\'Delete this campaign?\', () => document.getElementById(\'del-campaign-form\').submit())">'
+            . icon('trash', 'size-4') . '<span class="hidden sm:inline">Delete campaign</span></button>';
+        $hiddenDeleteForm = '<form id="del-campaign-form" method="post" action="' . e(url('/campaigns/' . $id . '/delete')) . '" class="hidden">'
+            . csrf_field() . '</form>';
+    }
+
+    page($id ? 'Edit Campaign' : 'New Campaign', 'campaign', form_shell($id ? "/campaigns/$id/edit" : '/campaigns/new', $f, $id ? "/campaigns/$id" : '/campaigns', $leftDeleteBtn, $hiddenDeleteForm), ['subtitle' => $id ? e($c['name']) : 'Create a new campaign']);
 }
 
 function action_campaign_save(int $id = 0): void

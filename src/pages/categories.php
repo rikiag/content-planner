@@ -136,7 +136,7 @@ function page_categories(): void
                 </button>
             </div>
 
-            <button type="button" class="btn-primary" @click="openCreate()">
+            <button type="button" class="btn-primary" @click.stop="openCreate()">
                 <?= icon('plus', 'size-4') ?><span x-text="'Add ' + tabLabel()"></span>
             </button>
         </div>
@@ -158,7 +158,7 @@ function page_categories(): void
                             <div class="text-[11px] text-muted"><span x-text="p.count"></span> posts</div>
                         </div>
                         <div class="flex items-center gap-1">
-                            <button type="button" class="grid size-8 place-items-center rounded-xl text-muted hover:bg-soft hover:text-ink" @click="openEditPlatform(p)" aria-label="Edit" title="Edit"><?= icon('pencil', 'size-4') ?></button>
+                            <button type="button" class="grid size-8 place-items-center rounded-xl text-muted hover:bg-soft hover:text-ink" @click.stop="openEditPlatform(p)" aria-label="Edit" title="Edit"><?= icon('pencil', 'size-4') ?></button>
                             <button type="button" class="grid size-8 place-items-center rounded-xl text-muted hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-500/10"
                                 @click="removeItem('platform', p.name)" :disabled="platforms.length <= 1" aria-label="Delete" title="Delete"><?= icon('trash', 'size-4') ?></button>
                         </div>
@@ -184,7 +184,7 @@ function page_categories(): void
                             <div class="text-[11px] text-muted"><span x-text="f.count"></span> posts</div>
                         </div>
                         <div class="flex items-center gap-1">
-                            <button type="button" class="grid size-8 place-items-center rounded-xl text-muted hover:bg-soft hover:text-ink" @click="openEditSimple('format', f.name)" aria-label="Edit" title="Edit"><?= icon('pencil', 'size-4') ?></button>
+                            <button type="button" class="grid size-8 place-items-center rounded-xl text-muted hover:bg-soft hover:text-ink" @click.stop="openEditSimple('format', f.name)" aria-label="Edit" title="Edit"><?= icon('pencil', 'size-4') ?></button>
                             <button type="button" class="grid size-8 place-items-center rounded-xl text-muted hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-500/10"
                                 @click="removeItem('format', f.name)" :disabled="formats.length <= 1" aria-label="Delete" title="Delete"><?= icon('trash', 'size-4') ?></button>
                         </div>
@@ -210,7 +210,7 @@ function page_categories(): void
                             <div class="text-[11px] text-muted"><span x-text="pil.count"></span> items</div>
                         </div>
                         <div class="flex items-center gap-1">
-                            <button type="button" class="grid size-8 place-items-center rounded-xl text-muted hover:bg-soft hover:text-ink" @click="openEditSimple('pillar', pil.name)" aria-label="Edit" title="Edit"><?= icon('pencil', 'size-4') ?></button>
+                            <button type="button" class="grid size-8 place-items-center rounded-xl text-muted hover:bg-soft hover:text-ink" @click.stop="openEditSimple('pillar', pil.name)" aria-label="Edit" title="Edit"><?= icon('pencil', 'size-4') ?></button>
                             <button type="button" class="grid size-8 place-items-center rounded-xl text-muted hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-500/10"
                                 @click="removeItem('pillar', pil.name)" :disabled="pillars.length <= 1" aria-label="Delete" title="Delete"><?= icon('trash', 'size-4') ?></button>
                         </div>
@@ -239,7 +239,7 @@ function page_categories(): void
                             <div class="mt-1 text-[11px] text-muted"><span x-text="s.count"></span> posts</div>
                         </div>
                         <div class="flex items-center gap-1">
-                            <button type="button" class="grid size-8 place-items-center rounded-xl text-muted hover:bg-soft hover:text-ink" @click="openEditStatus(s)" aria-label="Edit" title="Edit"><?= icon('pencil', 'size-4') ?></button>
+                            <button type="button" class="grid size-8 place-items-center rounded-xl text-muted hover:bg-soft hover:text-ink" @click.stop="openEditStatus(s)" aria-label="Edit" title="Edit"><?= icon('pencil', 'size-4') ?></button>
                             <button type="button" class="grid size-8 place-items-center rounded-xl text-muted hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-500/10"
                                 @click="removeItem('status', s.key)" :disabled="statuses.length <= 1 || s.key === 'published'"
                                 :title="s.key === 'published' ? 'Published status is required for metrics' : 'Delete'" aria-label="Delete"><?= icon('trash', 'size-4') ?></button>
@@ -252,8 +252,9 @@ function page_categories(): void
         <!-- Modal for Create / Edit -->
         <div x-show="modal.open" x-cloak x-transition.opacity
             @keydown.escape.window="modal.open = false"
+            @click.self="modal.open = false"
             class="fixed inset-0 z-[85] grid place-items-center bg-black/55 p-4 backdrop-blur-sm" role="dialog" aria-modal="true">
-            <div x-show="modal.open" x-transition.scale.95 @click.outside="modal.open = false" class="card w-full max-w-md p-6">
+            <div x-show="modal.open" x-transition.scale.95 class="card w-full max-w-md p-6">
                 <div class="mb-4 flex items-center justify-between">
                     <h3 class="text-base font-extrabold" x-text="(modal.orig ? 'Edit ' : 'Add ') + tabLabel()"></h3>
                     <button type="button" class="grid size-8 place-items-center rounded-xl text-muted hover:bg-soft" @click="modal.open = false" aria-label="Close"><?= icon('x', 'size-4') ?></button>
@@ -261,18 +262,18 @@ function page_categories(): void
 
                 <form @submit.prevent="saveModal()" class="flex flex-col gap-4">
                     <div>
-                        <label class="label">Name / Label <span class="text-rose-500">*</span></label>
-                        <input type="text" x-ref="nameInput" x-model="modal.name" required maxlength="50" class="input" placeholder="Enter name…">
+                        <label for="cat-name-input" class="label">Name / Label <span class="text-rose-500">*</span></label>
+                        <input id="cat-name-input" type="text" x-ref="nameInput" x-model="modal.name" required maxlength="50" class="input" placeholder="Enter name…">
                     </div>
 
                     <template x-if="modal.type === 'platform'">
                         <div class="flex flex-col gap-4">
                             <div>
-                                <label class="label">Badge Abbreviation (2–4 chars)</label>
-                                <input type="text" x-model="modal.abbr" maxlength="4" class="input" placeholder="e.g. IG, TT, YT">
+                                <label for="cat-abbr-input" class="label">Badge Abbreviation (2–4 chars)</label>
+                                <input id="cat-abbr-input" type="text" x-model="modal.abbr" maxlength="4" class="input" placeholder="e.g. IG, TT, YT">
                             </div>
                             <div>
-                                <label class="label">Badge Color</label>
+                                <span class="label">Badge Color</span>
                                 <div class="flex flex-wrap gap-2">
                                     <template x-for="(cMeta, cKey) in colors" :key="cKey">
                                         <button type="button" @click="modal.color = cKey"
@@ -288,7 +289,7 @@ function page_categories(): void
                     <template x-if="modal.type === 'status'">
                         <div class="flex flex-col gap-4">
                             <div>
-                                <label class="label">Color Theme</label>
+                                <span class="label">Color Theme</span>
                                 <div class="flex flex-wrap gap-2">
                                     <template x-for="(cMeta, cKey) in colors" :key="cKey">
                                         <button type="button" @click="modal.color = cKey"
@@ -299,8 +300,8 @@ function page_categories(): void
                                 </div>
                             </div>
                             <div>
-                                <label class="label">Icon</label>
-                                <select x-model="modal.icon" class="input">
+                                <label for="cat-icon-select" class="label">Icon</label>
+                                <select id="cat-icon-select" x-model="modal.icon" class="input">
                                     <template x-for="ic in icons" :key="ic">
                                         <option :value="ic" x-text="ic"></option>
                                     </template>
@@ -324,9 +325,9 @@ function page_categories(): void
 function action_categories_save(): void
 {
     $type = input('type');
-    $op = input('op'); // save | delete
+    $op = input('op') ?: input('action'); // save | delete
     $orig = input('orig');
-    $name = mb_substr(input('name'), 0, 50);
+    $name = mb_substr(input('name') ?: input('label'), 0, 50);
 
     if (!in_array($type, ['platform', 'format', 'pillar', 'status'], true)) {
         json_out(['ok' => false, 'error' => 'Invalid category type.'], 400);

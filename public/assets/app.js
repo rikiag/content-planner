@@ -886,6 +886,7 @@
           icon: 'bulb',
           progress: 0,
         };
+        this.$nextTick(() => this.$refs.nameInput && this.$refs.nameInput.focus());
       },
       openEditPlatform(p) {
         this.modal = {
@@ -901,6 +902,7 @@
           icon: 'bulb',
           progress: 0,
         };
+        this.$nextTick(() => this.$refs.nameInput && this.$refs.nameInput.focus());
       },
       openEditSimple(type, name) {
         this.modal = {
@@ -916,6 +918,7 @@
           icon: 'bulb',
           progress: 0,
         };
+        this.$nextTick(() => this.$refs.nameInput && this.$refs.nameInput.focus());
       },
       openEditStatus(s) {
         this.modal = {
@@ -931,6 +934,7 @@
           icon: s.icon || 'bulb',
           progress: Number(s.progress || 0),
         };
+        this.$nextTick(() => this.$refs.nameInput && this.$refs.nameInput.focus());
       },
       async saveModal() {
         const nameVal = (this.modal.name || this.modal.label || '').trim();

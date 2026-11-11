@@ -82,6 +82,7 @@ function page_home(): void
     $top = q("SELECT c.*, ca.name AS campaign_name FROM contents c LEFT JOIN campaigns ca ON ca.id=c.campaign_id WHERE c.status='published' AND substr(COALESCE(c.published_at, c.scheduled_at, c.created_at),1,7)=? ORDER BY c.views DESC LIMIT 5", [$month]);
 
     ob_start(); ?>
+<div class="flex flex-col gap-5">
 <div class="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_19.5rem]">
 
     <!-- ================= Left column ================= -->
@@ -152,9 +153,6 @@ function page_home(): void
                 <?= empty_state('check', 'All caught up', 'No drafts waiting right now. Time to plan your next post.', '<a href="' . e(url('/content/new')) . '" class="btn-primary mt-2">' . icon('plus', 'size-4') . 'New content</a>') ?>
             <?php endif; ?>
         </section>
-
-        <!-- Analytics (replaces Quick Access) -->
-        <?= render_analytics_section() ?>
     </div>
 
     <!-- ================= Right column ================= -->
@@ -243,6 +241,10 @@ function page_home(): void
             <?php endif; ?>
         </section>
     </div>
+</div>
+
+<!-- ================= Full-width Analytics ================= -->
+<?= render_analytics_section() ?>
 </div>
 <?php
     page('Dashboard', 'home', (string) ob_get_clean());

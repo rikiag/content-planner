@@ -142,7 +142,7 @@ function page_contents(): void
                         :class="view === 'calendar' ? 'bg-hero text-white' : 'text-muted hover:text-ink'"><?= icon('calendar', 'size-4') ?>Calendar</button>
                 </div>
                 <div class="ml-auto flex items-center gap-2">
-                    <a href="<?= e(url('/categories')) ?>" class="btn-soft hidden !px-3.5 !py-2 !text-xs sm:inline-flex" title="Manage Platform, Format, Pillar & Status"><?= icon('tag', 'size-4') ?>Categories</a>
+                    <a href="<?= e(url('/categories')) ?>" class="btn-soft hidden !px-3.5 !py-2 !text-xs sm:inline-flex" title="Manage Platform, Format, Pillar & Status"><?= icon('tag', 'size-4') ?>Labels</a>
                     <a href="<?= e(url('/content/new')) ?>" class="btn-primary hidden sm:inline-flex"><?= icon('plus', 'size-4') ?>New content</a>
                 </div>
             </div>

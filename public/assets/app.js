@@ -773,17 +773,18 @@
       },
     }));
 
-    /* ----- Category CRUD Manager (Platform, Format, Pillar, Status) ----- */
+    /* ----- Category / Labels CRUD Manager (Platform, Format, Pillar, Status) ----- */
     A.data('categoryManager', (cfg) => ({
       tab: cfg.tab || 'platform',
       platforms: cfg.platforms || [],
       formats: cfg.formats || [],
       pillars: cfg.pillars || [],
       statuses: cfg.statuses || [],
-      colors: cfg.colors || [],
+      colors: cfg.colors || {},
       icons: cfg.icons || [],
       csrf: cfg.csrf || '',
-      baseUrl: cfg.baseUrl || '',
+      endpoint: cfg.endpoint || ((cfg.baseUrl || '') + '/categories'),
+      busy: false,
       saving: false,
       modal: {
         open: false,
@@ -791,13 +792,17 @@
         type: 'platform',
         orig: '',
         key: '',
+        name: '',
         label: '',
         abbr: '',
         color: 'blue',
-        icon: 'spark',
+        icon: 'bulb',
         progress: 0,
       },
 
+      tabLabel() {
+        return { platform: 'Platform', format: 'Format', pillar: 'Pillar', status: 'Status' }[this.tab] || 'Label';
+      },
       setTab(t) {
         this.tab = t;
         const u = new URL(location.href);
@@ -805,16 +810,18 @@
         history.pushState({}, '', u);
       },
       openCreate(type) {
+        const t = type || this.tab;
         this.modal = {
           open: true,
           mode: 'create',
-          type,
+          type: t,
           orig: '',
           key: '',
+          name: '',
           label: '',
           abbr: '',
           color: 'blue',
-          icon: 'spark',
+          icon: 'bulb',
           progress: 0,
         };
       },
@@ -825,10 +832,11 @@
           type: 'platform',
           orig: p.name,
           key: p.name,
+          name: p.name,
           label: p.name,
           abbr: p.abbr || '',
           color: p.color || 'blue',
-          icon: 'spark',
+          icon: 'bulb',
           progress: 0,
         };
       },
@@ -839,10 +847,11 @@
           type,
           orig: name,
           key: name,
+          name,
           label: name,
           abbr: '',
           color: 'blue',
-          icon: 'spark',
+          icon: 'bulb',
           progress: 0,
         };
       },
@@ -853,60 +862,69 @@
           type: 'status',
           orig: s.key,
           key: s.key,
+          name: s.label,
           label: s.label,
           abbr: '',
           color: s.color || 'slate',
-          icon: s.icon || 'spark',
+          icon: s.icon || 'bulb',
           progress: Number(s.progress || 0),
         };
       },
       async saveModal() {
-        if (!this.modal.label.trim() || this.saving) return;
+        const nameVal = (this.modal.name || this.modal.label || '').trim();
+        if (!nameVal || this.busy) return;
+        this.busy = true;
         this.saving = true;
         try {
-          const data = await postAjax(`${this.baseUrl}/categories`, {
+          const data = await postAjax(this.endpoint, {
             type: this.modal.type,
+            op: 'save',
             action: 'save',
             orig: this.modal.orig,
             key: this.modal.key,
-            label: this.modal.label.trim(),
-            abbr: this.modal.abbr.trim(),
+            name: nameVal,
+            label: nameVal,
+            abbr: (this.modal.abbr || '').trim(),
             color: this.modal.color,
             icon: this.modal.icon,
             progress: this.modal.progress,
           }, this.csrf);
           if (data.ok) {
-            this.platforms = data.platforms || this.platforms;
-            this.formats = data.formats || this.formats;
-            this.pillars = data.pillars || this.pillars;
-            this.statuses = data.statuses || this.statuses;
+            const st = data.state || data;
+            this.platforms = st.platforms || this.platforms;
+            this.formats = st.formats || this.formats;
+            this.pillars = st.pillars || this.pillars;
+            this.statuses = st.statuses || this.statuses;
             this.modal.open = false;
-            A.store('toast').push(data.msg || 'Category saved');
+            A.store('toast').push(data.msg || 'Saved');
           } else {
-            A.store('toast').push(data.msg || 'Could not save category', 'err');
+            A.store('toast').push(data.error || data.msg || 'Could not save', 'err');
           }
         } catch {
           A.store('toast').push('Network error', 'err');
         } finally {
+          this.busy = false;
           this.saving = false;
         }
       },
       removeItem(type, orig) {
         A.store('confirm').ask(`Delete ${type} "${orig}"?`, async () => {
           try {
-            const data = await postAjax(`${this.baseUrl}/categories`, {
+            const data = await postAjax(this.endpoint, {
               type,
+              op: 'delete',
               action: 'delete',
               orig,
             }, this.csrf);
             if (data.ok) {
-              this.platforms = data.platforms || this.platforms;
-              this.formats = data.formats || this.formats;
-              this.pillars = data.pillars || this.pillars;
-              this.statuses = data.statuses || this.statuses;
-              A.store('toast').push(data.msg || 'Category deleted', 'warn');
+              const st = data.state || data;
+              this.platforms = st.platforms || this.platforms;
+              this.formats = st.formats || this.formats;
+              this.pillars = st.pillars || this.pillars;
+              this.statuses = st.statuses || this.statuses;
+              A.store('toast').push(data.msg || 'Deleted', 'warn');
             } else {
-              A.store('toast').push(data.msg || 'Could not delete category', 'err');
+              A.store('toast').push(data.error || data.msg || 'Could not delete', 'err');
             }
           } catch {
             A.store('toast').push('Network error', 'err');

@@ -109,7 +109,7 @@ function page_categories(): void
 
         <!-- Category Tabs -->
         <div class="mb-5 flex flex-wrap items-center justify-between gap-3">
-            <div class="grid flex-1 grid-cols-2 gap-1.5 rounded-3xl bg-surface p-1.5 shadow-sm sm:flex sm:flex-none" role="tablist" aria-label="Master Data Categories">
+            <div class="grid flex-1 grid-cols-2 gap-1.5 rounded-3xl bg-surface p-1.5 shadow-sm sm:flex sm:flex-none" role="tablist" aria-label="Master Data Labels">
                 <button type="button" role="tab" :aria-selected="tab === 'platform'" @click="setTab('platform')"
                     class="inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-2 text-xs font-extrabold transition"
                     :class="tab === 'platform' ? 'bg-hero text-white shadow-sm' : 'text-muted hover:text-ink'">
@@ -318,7 +318,7 @@ function page_categories(): void
         </div>
     </div>
     <?php
-    page('Categories', 'categories', (string) ob_get_clean(), ['subtitle' => 'Manage Platform, Format, Pillar & Status']);
+    page('Labels', 'categories', (string) ob_get_clean(), ['subtitle' => 'Manage Platform, Format, Pillar & Status']);
 }
 
 function action_categories_save(): void

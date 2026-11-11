@@ -12,7 +12,7 @@ function nav_items(): array
         'content'    => ['label' => 'Content',    'href' => '/content',    'icon' => 'calendar', 'badge' => overdue_count()],
         'campaign'   => ['label' => 'Campaigns',  'href' => '/campaigns',  'icon' => 'flag',     'badge' => 0],
         'idea'       => ['label' => 'Idea Bank',  'href' => '/ideas',      'icon' => 'bulb',     'badge' => new_ideas_count()],
-        'categories' => ['label' => 'Categories', 'href' => '/categories', 'icon' => 'tag',      'badge' => 0],
+        'categories' => ['label' => 'Labels',     'href' => '/categories', 'icon' => 'tag',      'badge' => 0],
         'resources'  => ['label' => 'Resources',  'href' => '/resources',  'icon' => 'folder',   'badge' => 0],
         'account'    => ['label' => 'Account',    'href' => '/account',    'icon' => 'users',    'badge' => 0],
     ];

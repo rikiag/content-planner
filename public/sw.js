@@ -67,7 +67,10 @@ self.addEventListener('fetch', (e) => {
       caches.match(req).then((hit) => {
         const net = fetch(req)
           .then((res) => {
-            if (res.ok) caches.open(STATIC).then((c) => c.put(req, res.clone()));
+            if (res.ok && res.status === 200) {
+              const copy = res.clone();
+              caches.open(STATIC).then((c) => c.put(req, copy)).catch(() => {});
+            }
             return res;
           })
           .catch(async () => hit || (await caches.match(req, { ignoreSearch: true })));

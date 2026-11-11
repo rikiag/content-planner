@@ -312,13 +312,6 @@ function page(string $title, string $active, string $body, array $opts = []): vo
                     <div class="min-w-0 leading-tight">
                         <div class="flex items-center gap-1.5">
                             <span class="truncate text-[17px] font-extrabold tracking-tight"><?= e(APP_NAME) ?></span>
-                            <a href="<?= e(url('/changelog')) ?>" @click="$store.changelog.markSeen()" class="relative inline-flex items-center gap-1 rounded-full bg-brandsoft px-2 py-0.5 text-[10px] font-extrabold text-brand hover:brightness-95" title="View changelog">
-                                <span>v<?= e(APP_VERSION) ?></span>
-                                <span x-show="$store.changelog.hasNew" x-cloak class="size-1.5 rounded-full bg-rose-500" title="New update available"></span>
-                            </a>
-                        </div>
-                        <div class="flex items-center gap-1.5 text-[11px] text-muted">
-                            <span>by <a href="https://rikiag.com" target="_blank" rel="noopener noreferrer" class="hover:underline">rikiag</a></span>
                         </div>
                     </div>
                     <button class="ml-auto grid size-9 place-items-center rounded-xl text-muted hover:bg-soft lg:hidden" @click="drawer = false" aria-label="Close menu"><?= icon('x', 'size-5') ?></button>
@@ -440,7 +433,7 @@ function page(string $title, string $active, string $body, array $opts = []): vo
                     <?= $body ?>
                 </main>
 
-                <footer class="mt-auto border-t border-line px-4 py-6 text-xs text-muted lg:px-0">
+                <footer class="mt-8 border-t border-line px-4 py-6 text-xs text-muted lg:px-0">
                     <div class="flex flex-wrap items-center justify-between gap-2">
                         <span><?= e(APP_NAME) ?> v<?= e(APP_VERSION) ?> · by <a href="https://rikiag.com" target="_blank" rel="noopener noreferrer" class="font-semibold hover:text-ink hover:underline">rikiag</a></span>
                         <div class="flex items-center gap-3">

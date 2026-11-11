@@ -513,6 +513,7 @@
           cells.push({
             key: ymd,
             date: ymd,
+            day: cur.getDate(),
             dayNum: cur.getDate(),
             inMonth: cur.getMonth() === month,
             isToday: ymd === this.today,

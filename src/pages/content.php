@@ -366,13 +366,13 @@ function page_contents(): void
                             <template x-for="(cell, idx) in monthCells()" :key="idx">
                                 <div @click="cell.date && selectDate(cell.date)"
                                     class="min-h-14 p-1 text-left transition sm:min-h-24 sm:p-1.5"
-                                    :class="!cell.date ? 'bg-surface/60' : (cell.date === selectedDate ? 'cursor-pointer bg-brandsoft/60 ring-2 ring-inset ring-brand' : 'cursor-pointer bg-surface hover:bg-soft/40')">
+                                    :class="!cell.inMonth ? 'cursor-pointer bg-surface/60 opacity-60' : (cell.date === selectedDate ? 'cursor-pointer bg-brandsoft/60 ring-2 ring-inset ring-brand' : 'cursor-pointer bg-surface hover:bg-soft/40')">
                                     <template x-if="cell.date">
                                         <div>
                                             <div class="mb-1 flex items-center justify-between">
                                                 <span class="grid size-6 place-items-center rounded-full text-[11px] font-bold"
-                                                    :class="cell.date === today ? '!bg-accent text-white' : (cell.date === selectedDate ? 'bg-brand text-white' : 'text-muted')"
-                                                    x-text="cell.day"></span>
+                                                    :class="cell.date === today ? '!bg-accent text-white' : (cell.date === selectedDate ? 'bg-brand text-white' : (cell.inMonth ? 'text-ink' : 'text-muted'))"
+                                                    x-text="cell.dayNum"></span>
                                                 <span x-show="cell.items.length > 0" class="text-[10px] font-bold text-muted sm:hidden" x-text="cell.items.length"></span>
                                             </div>
                                             <div class="hidden flex-col gap-0.5 sm:flex">

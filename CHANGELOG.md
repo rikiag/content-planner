@@ -5,6 +5,45 @@ All notable changes to **Content Planner** will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+![Content Planner Latest Screenshot](public/assets/images/screenshot-2026-11-12.webp)
+
+### Added
+- Sidebar now shows the latest 3 colored notes, with a detail modal.
+- Search filter on the Campaigns page.
+- Pagination for the Idea Bank and for content in the Campaign detail page.
+- Board view limits each column to 5 items, with a "View all" button.
+- Month calendar view shows the "Selected Date" side panel only in Month mode.
+- Weekly Goal days on the dashboard link to the calendar day view.
+- Search form on mobile can be toggled via an icon button in the navbar.
+
+### Changed
+- Renamed **Categories** to **Labels** across navigation and content.
+- Dashboard layout: Quick Idea moved above Weekly Goal, and Analytics is now full width below the main columns.
+- "About" and "What's new" links moved from the sidebar to the footer; sidebar version/author info removed and footer spacing added.
+- Status filter pills are hidden in Board view.
+- Cancel button on forms now navigates back to the previous page.
+- Active view and calendar mode persist across page reloads.
+- Mobile polish: pagination bar centered, delete buttons show only a trash icon, campaign delete button inlined in the form footer.
+- Refined note section styling, form background color, status select styling, and equal column heights on the board.
+
+### Fixed
+- Service Worker "response clone" error.
+- Label modal click-outside race condition; label input is now auto-focused.
+- "In progress" filter, week view borders, and horizontal rendering of the calendar week view.
+- Date numbers now display in month calendar cells.
+- Content detail modal footer padding and Continue Working button padding.
+- Idea save button state and responsive layout CSS.
+- Overflow behavior in week view and an unnecessary class on the home hero section.
+
+## [1.1.1] - 2026-11-10
+
+### Added
+- Changelog "seen version" store, dynamic Service Worker version query, and version badges, changelog links, and recent releases in layout, account, and landing pages.
+
+### Changed
+- Improved Service Worker versioning and cache handling; legacy Service Worker caches are purged.
+- Refined security headers and permissions policy.
+- Enhanced theme application in the layout.
 
 ## [1.1.0] - 2026-11-10
 ![Content Planner Workspace Overview](public/assets/images/screenshot.webp)

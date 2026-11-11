@@ -319,13 +319,6 @@ function page(string $title, string $active, string $body, array $opts = []): vo
                         </div>
                         <div class="flex items-center gap-1.5 text-[11px] text-muted">
                             <span>by <a href="https://rikiag.com" target="_blank" rel="noopener noreferrer" class="hover:underline">rikiag</a></span>
-                            <span>·</span>
-                            <a href="<?= e(url('/welcome')) ?>" class="hover:underline">About</a>
-                            <span>·</span>
-                            <a href="<?= e(url('/changelog')) ?>" @click="$store.changelog.markSeen()" class="inline-flex items-center gap-1 font-semibold hover:text-ink hover:underline">
-                                <span>What’s new</span>
-                                <span x-show="$store.changelog.hasNew" x-cloak class="size-1.5 rounded-full bg-rose-500"></span>
-                            </a>
                         </div>
                     </div>
                     <button class="ml-auto grid size-9 place-items-center rounded-xl text-muted hover:bg-soft lg:hidden" @click="drawer = false" aria-label="Close menu"><?= icon('x', 'size-5') ?></button>
@@ -380,7 +373,7 @@ function page(string $title, string $active, string $body, array $opts = []): vo
             </aside>
 
             <!-- ============ Main column ============ -->
-            <div class="min-w-0 flex-1">
+            <div class="flex min-w-0 flex-1 flex-col">
                 <header x-data="{ searchOpen: <?= $active === 'search' ? 'true' : 'false' ?> }" class="app-header sticky top-0 z-30 text-white lg:static lg:rounded-[1.75rem] lg:shadow-card">
                     <div class="flex flex-wrap items-center gap-x-3 gap-y-3 px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] lg:px-6 lg:py-4">
                         <button class="icon-btn lg:hidden" @click="drawer = true" aria-label="Open menu" aria-controls="drawer" :aria-expanded="drawer"><?= icon('menu', 'size-5') ?></button>
@@ -443,9 +436,23 @@ function page(string $title, string $active, string $body, array $opts = []): vo
                     </div>
                 </header>
 
-                <main id="main" class="px-4 pb-10 pt-4 lg:px-0 lg:pt-5">
+                <main id="main" class="px-4 pb-6 pt-4 lg:px-0 lg:pt-5">
                     <?= $body ?>
                 </main>
+
+                <footer class="mt-auto border-t border-line px-4 py-6 text-xs text-muted lg:px-0">
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                        <span><?= e(APP_NAME) ?> v<?= e(APP_VERSION) ?> · by <a href="https://rikiag.com" target="_blank" rel="noopener noreferrer" class="font-semibold hover:text-ink hover:underline">rikiag</a></span>
+                        <div class="flex items-center gap-3">
+                            <a href="<?= e(url('/welcome')) ?>" class="font-semibold hover:text-ink hover:underline">About</a>
+                            <span>·</span>
+                            <a href="<?= e(url('/changelog')) ?>" @click="$store.changelog.markSeen()" class="inline-flex items-center gap-1 font-semibold hover:text-ink hover:underline">
+                                <span>What’s new</span>
+                                <span x-show="$store.changelog.hasNew" x-cloak class="size-1.5 rounded-full bg-rose-500"></span>
+                            </a>
+                        </div>
+                    </div>
+                </footer>
             </div>
         </div>
 

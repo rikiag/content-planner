@@ -211,11 +211,12 @@ function page_home(): void
                 <?php for ($i = 0; $i < 7; $i++):
                     $d = date('Y-m-d', strtotime($ws . " +$i days"));
                     $done = isset($days[$d]);
-                    $isToday = $d === date('Y-m-d'); ?>
-                    <div class="flex flex-col items-center gap-1.5">
+                    $isToday = $d === date('Y-m-d');
+                    $dayUrl = '/content?view=calendar&ym=' . substr($d, 0, 7) . '&cal_mode=day' . ($isToday ? '' : '&date=' . $d); ?>
+                    <a href="<?= e(url($dayUrl)) ?>" class="flex flex-col items-center gap-1.5 rounded-xl py-1 transition hover:bg-soft" title="<?= e(fmt_date($d)) ?>">
                         <span class="grid size-6 place-items-center rounded-full border-2 text-white <?= $done ? 'border-accent bg-accent' : ($isToday ? 'border-accent' : 'border-line bg-soft/50') ?>"><?php if ($done): ?><?= icon('check', 'size-3.5') ?><?php endif; ?></span>
                         <span class="text-[10px] font-semibold <?= $isToday ? 'text-accent' : 'text-muted' ?>"><?= DAYS_SHORT[(int) date('w', strtotime($d))] ?></span>
-                    </div>
+                    </a>
                 <?php endfor; ?>
             </div>
         </section>

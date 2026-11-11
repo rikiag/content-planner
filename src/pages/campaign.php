@@ -47,12 +47,20 @@ function page_campaigns(): void
         'items'    => $campaigns,
         'statuses' => $cStatuses,
         'status'   => isset(CAMPAIGN_STATUSES[$f]) ? $f : '',
+        'q'        => input('q'),
         'csrf'     => csrf_token(),
         'baseUrl'  => url(''),
     ];
 
     ob_start(); ?>
     <div x-data="campaignManager(<?= e(json_encode($config, JSON_UNESCAPED_UNICODE)) ?>)">
+        <!-- Search Filter -->
+        <label class="relative mb-3 block">
+            <span class="sr-only">Search campaigns</span>
+            <span class="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted"><?= icon('search', 'size-4') ?></span>
+            <input type="search" x-model="q" @input.debounce.200ms="onFilterChange()" placeholder="Search campaigns…" class="input !pl-10">
+        </label>
+
         <div class="mb-4 flex items-center gap-2">
             <div class="flex min-w-0 flex-1 gap-2 overflow-x-auto no-scrollbar">
                 <button type="button" class="pill" :aria-current="status === '' ? 'true' : 'false'" @click="setStatus('')">

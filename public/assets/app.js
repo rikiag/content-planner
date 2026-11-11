@@ -535,21 +535,40 @@
       items: cfg.items || [],
       statuses: cfg.statuses || [],
       status: cfg.status || '',
+      q: cfg.q || '',
       csrf: cfg.csrf || '',
       baseUrl: cfg.baseUrl || '',
 
+      syncUrl(push = false) {
+        const u = new URL(location.href);
+        if (this.status) u.searchParams.set('status', this.status);
+        else u.searchParams.delete('status');
+        const q = (this.q || '').trim();
+        if (q) u.searchParams.set('q', q);
+        else u.searchParams.delete('q');
+        if (push) history.pushState({}, '', u);
+        else history.replaceState({}, '', u);
+      },
       setStatus(s) {
         this.status = s;
-        const u = new URL(location.href);
-        if (s) u.searchParams.set('status', s);
-        else u.searchParams.delete('status');
-        history.pushState({}, '', u);
+        this.syncUrl(true);
+      },
+      onFilterChange() {
+        this.syncUrl(false);
+      },
+      matchesQuery(i) {
+        const q = (this.q || '').toLowerCase().trim();
+        if (!q) return true;
+        return `${i.name || ''} ${i.goal || ''}`.toLowerCase().includes(q);
       },
       countByStatus(k) {
-        return this.items.filter((i) => i.status === k).length;
+        return this.items.filter((i) => i.status === k && this.matchesQuery(i)).length;
       },
       filtered() {
-        return this.status ? this.items.filter((i) => i.status === this.status) : this.items;
+        return this.items.filter((i) => {
+          if (this.status && i.status !== this.status) return false;
+          return this.matchesQuery(i);
+        });
       },
       statusMeta(k) {
         return this.statuses.find((s) => s.key === k) || { key: k, label: k, chip: 'bg-soft text-muted' };

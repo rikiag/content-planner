@@ -44,6 +44,7 @@
   .h-full{height:100%}
   @media (min-width:40rem){
     .sm\:gap-0{gap:0}
+    .sm\:w-auto{width:auto}
     .sm\:overflow-hidden{overflow:hidden}
     .sm\:border{border-style:var(--tw-border-style);border-width:1px}
     .sm\:border-0{border-style:var(--tw-border-style);border-width:0}

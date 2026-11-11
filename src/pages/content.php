@@ -57,7 +57,7 @@ function content_row(array $c, string $back, bool $live = false): string
                 <?php endif; ?>
             </div>
         </div>
-        <div class="flex items-center justify-between gap-2 sm:justify-end" @click.stop>
+        <div class="flex items-center justify-between gap-2 sm:justify-end sm:pl-0" @click.stop>
             <?= status_select($c, $back) ?>
             <div class="flex items-center gap-1">
                 <a href="<?= e(url('/content/' . $c['id'])) ?>" class="grid size-9 place-items-center rounded-xl text-muted hover:bg-soft hover:text-ink" aria-label="Edit" title="Edit"><?= icon('pencil', 'size-4') ?></a>
@@ -201,7 +201,7 @@ function page_contents(): void
                 <div>
                     <div class="flex flex-col gap-3">
                         <template x-for="c in pagedItems()" :key="c.id">
-                            <article @click="openDetail(c)" class="card flex cursor-pointer gap-3 p-4 transition hover:shadow-md sm:flex-row sm:items-center sm:gap-4">
+                            <article @click="openDetail(c)" class="card flex cursor-pointer flex-col gap-3 p-4 transition hover:shadow-md sm:flex-row sm:items-center sm:gap-4">
                                 <div class="flex min-w-0 flex-1 items-start gap-3">
                                     <span class="grid size-11 shrink-0 place-items-center rounded-2xl text-xs font-extrabold" :class="c.platform_cls" x-text="c.platform_abbr"></span>
                                     <div class="min-w-0 flex-1">
@@ -232,7 +232,7 @@ function page_contents(): void
                                         </template>
                                     </div>
                                 </div>
-                                <div class="flex items-center justify-between gap-2 sm:justify-end" @click.stop>
+                                <div class="flex items-center justify-between gap-2 sm:justify-end sm:pl-0" @click.stop>
                                     <select :value="c.status" @change="changeStatus(c, $event.target.value)" aria-label="Change status"
                                         class="cursor-pointer appearance-none rounded-full border-0 py-1.5 pl-3 pr-3 text-[11px] font-bold focus:outline-2 focus:outline-brand"
                                         :class="statusChip(c.status)">

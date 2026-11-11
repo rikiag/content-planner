@@ -68,7 +68,7 @@ function page_ideas(): void
                     <option :value="p" x-text="p"></option>
                 </template>
             </select>
-            <button type="submit" class="btn-primary" :disabled="busy"><?= icon('plus', 'size-4') ?>Save idea</button>
+            <button type="submit" class="btn-primary" :disabled="saving"><?= icon('plus', 'size-4') ?>Save idea</button>
         </form>
 
         <!-- Search Filter -->

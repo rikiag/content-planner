@@ -250,7 +250,7 @@ function layout_overlays(array $flashes): void
                 </div>
 
                 <!-- Footer (1 row: Delete on far left, Duplicate & Edit on right) -->
-                <div class="flex flex-wrap items-center justify-between gap-2 border-t border-line bg-soft2/50 px-5 py-3.5">
+                <div class="flex flex-wrap items-center justify-between gap-2 border-t border-line bg-soft2/50 p-5">
                     <form method="post" :action="$store.contentModal.url('/content/' + $store.contentModal.item.id + '/delete')"
                         @submit.prevent="$store.confirm.ask('Delete content “' + $store.contentModal.item.title + '”?', () => $el.submit())">
                         <?= csrf_field() ?>

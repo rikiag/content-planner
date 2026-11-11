@@ -37,6 +37,11 @@
   .text-3xl{font-size:1.875rem;line-height:2.25rem}
   .text-emerald-300{color:var(--color-emerald-300)}
   .hover\:bg-surface:hover{background-color:var(--c-surface)}
+  .break-words{overflow-wrap:break-word}
+  .max-h-\[60vh\]{max-height:60vh}
+  .hover\:brightness-95:hover{filter:brightness(.95)}
+  .items-stretch{align-items:stretch}
+  .h-full{height:100%}
   @media (min-width:40rem){
     .sm\:grid-cols-7{grid-template-columns:repeat(7,minmax(0,1fr))}
     .sm\:justify-between{justify-content:space-between}

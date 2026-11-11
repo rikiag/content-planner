@@ -287,7 +287,7 @@ function page(string $title, string $active, string $body, array $opts = []): vo
     $remCount = count($rem['late']) + count($rem['soon']);
     $streak = streak_days();
     $views = (int) qv("SELECT COALESCE(SUM(views),0) FROM contents WHERE status='published' AND substr(" . pub_date_sql() . ",1,7)=?", [date('Y-m')]);
-    $latestNote = q1('SELECT * FROM notes ORDER BY pinned DESC, updated_at DESC, id DESC LIMIT 1');
+    $sideNotes = q('SELECT * FROM notes ORDER BY pinned DESC, updated_at DESC, id DESC LIMIT 3');
     $flashes = take_flash();
     $heading = $isHome ? 'Hello, ' . e($name) . ',' : e($title);
     $sub = $isHome ? e($role) : e($opts['subtitle'] ?? $studio);
@@ -329,8 +329,8 @@ function page(string $title, string $active, string $body, array $opts = []): vo
                     <?php endforeach; ?>
                 </nav>
 
-                <div class="flex min-h-40 flex-1 flex-col rounded-3xl bg-note p-3.5 text-noteink" x-data="{ open: false }">
-                    <div class="mb-2 flex items-center gap-2">
+                <div class="flex min-h-40 flex-1 flex-col gap-2 overflow-y-auto" x-data="{ open: false }">
+                    <div class="flex items-center gap-2 px-1">
                         <span class="grid size-6 place-items-center rounded-md bg-amber-400/90 text-amber-950"><?= icon('note', 'size-3.5') ?></span>
                         <a href="<?= e(url('/notes')) ?>" class="text-xs font-extrabold">Notes</a>
                         <button type="button" class="ml-auto grid size-6 place-items-center rounded-full bg-amber-400 text-amber-950 transition active:scale-90"
@@ -338,15 +338,18 @@ function page(string $title, string $active, string $body, array $opts = []): vo
                             <span class="transition-transform" :class="{ 'rotate-45': open }"><?= icon('plus', 'size-3.5') ?></span>
                         </button>
                     </div>
-                    <form x-show="open" x-cloak x-transition method="post" action="<?= e(url('/notes')) ?>">
+                    <form x-show="open" x-cloak x-transition method="post" action="<?= e(url('/notes')) ?>" class="rounded-2xl bg-note p-2.5 text-noteink">
                         <?= csrf_field() ?><input type="hidden" name="back" value="<?= e($back) ?>">
                         <textarea x-ref="t" name="body" required rows="3" maxlength="2000" placeholder="Write a note…" class="w-full resize-none rounded-xl border-0 bg-white/60 p-2 text-xs text-ink placeholder:text-noteink/60 focus:outline-2 focus:outline-amber-500 dark:bg-black/25 dark:text-white"></textarea>
                         <button class="mt-1.5 w-full rounded-lg bg-amber-400 py-1.5 text-[11px] font-bold text-amber-950">Save</button>
                     </form>
-                    <?php if ($latestNote): ?>
-                        <a href="<?= e(url('/notes')) ?>" class="line-clamp-6 whitespace-pre-line text-[11px] leading-relaxed"><?= e($latestNote['body']) ?></a>
-                    <?php else: ?>
-                        <p class="text-[11px] leading-relaxed opacity-80">No notes yet. Tap + to jot something down.</p>
+                    <?php if ($sideNotes): foreach ($sideNotes as $sn): ?>
+                        <button type="button" @click="$dispatch('note-open', <?= e(json_encode(['body' => $sn['body'], 'cls' => NOTE_COLORS[$sn['color']] ?? NOTE_COLORS['yellow'], 'at' => fmt_dt($sn['updated_at'])], JSON_UNESCAPED_UNICODE)) ?>)"
+                            class="w-full rounded-2xl p-3 text-left transition hover:brightness-95 <?= NOTE_COLORS[$sn['color']] ?? NOTE_COLORS['yellow'] ?>">
+                            <span class="block whitespace-pre-line break-words text-[11px] leading-relaxed line-clamp-4"><?= e($sn['body']) ?></span>
+                        </button>
+                    <?php endforeach; else: ?>
+                        <p class="rounded-2xl bg-note p-3 text-[11px] leading-relaxed text-noteink opacity-80">No notes yet. Tap + to jot something down.</p>
                     <?php endif; ?>
                 </div>
 
@@ -446,6 +449,20 @@ function page(string $title, string $active, string $body, array $opts = []): vo
                         </div>
                     </div>
                 </footer>
+            </div>
+        </div>
+
+        <!-- Note detail modal -->
+        <div x-data="{ open: false, n: { body: '', cls: '', at: '' } }" @note-open.window="n = $event.detail; open = true" @keydown.escape.window="open = false"
+            x-show="open" x-cloak x-transition.opacity @click.self="open = false"
+            class="fixed inset-0 z-[85] grid place-items-center bg-black/55 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-label="Note detail">
+            <div class="w-full max-w-md rounded-3xl p-5 shadow-2xl" :class="n.cls">
+                <div class="mb-3 flex items-center justify-between gap-2">
+                    <span class="text-[11px] font-semibold opacity-70" x-text="n.at"></span>
+                    <button type="button" class="grid size-8 place-items-center rounded-lg hover:bg-black/10" @click="open = false" aria-label="Close"><?= icon('x', 'size-4') ?></button>
+                </div>
+                <p class="max-h-[60vh] overflow-y-auto whitespace-pre-line break-words text-sm leading-relaxed" x-text="n.body"></p>
+                <a href="<?= e(url('/notes')) ?>" class="mt-4 inline-block text-xs font-bold underline">Open Notes</a>
             </div>
         </div>
 

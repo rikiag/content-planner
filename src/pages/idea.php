@@ -48,7 +48,9 @@ function page_ideas(): void
         'pillars'  => $allPillars,
         'status'   => isset(IDEA_STATUSES[$f]) ? $f : '',
         'pillar'   => in_array($pillar, $allPillars, true) ? $pillar : '',
-        'q'        => '',
+        'q'        => input('q'),
+        'page'     => max(1, (int) input('page', '1')),
+        'perPage'  => 6,
         'csrf'     => csrf_token(),
         'baseUrl'  => url(''),
     ];
@@ -73,7 +75,7 @@ function page_ideas(): void
         <label class="relative mb-3 block">
             <span class="sr-only">Filter ideas</span>
             <span class="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted"><?= icon('search', 'size-4') ?></span>
-            <input type="search" x-model="q" placeholder="Filter displayed ideas…" class="input !pl-10">
+            <input type="search" x-model="q" @input.debounce.200ms="onFilterChange()" placeholder="Filter displayed ideas…" class="input !pl-10">
         </label>
 
         <!-- Status & Pillar Filter Pills -->
@@ -100,57 +102,83 @@ function page_ideas(): void
             </div>
         </template>
 
-        <div x-show="filtered().length > 0" class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-            <template x-for="item in filtered()" :key="item.id">
-                <article class="card flex flex-col gap-3 p-5 transition" :class="item.status === 'used' ? 'opacity-70' : ''">
-                    <div class="flex flex-wrap items-center gap-2">
-                        <!-- Alpine inline status selector -->
-                        <select :value="item.status" @change="updateIdea(item, { status: $event.target.value })" aria-label="Idea status"
-                            class="cursor-pointer appearance-none rounded-full border-0 py-1 pl-2.5 pr-2.5 text-[11px] font-bold focus:outline-2 focus:outline-brand"
-                            :class="statusChip(item.status)">
-                            <template x-for="st in statuses" :key="st.key">
-                                <option :value="st.key" :selected="st.key === item.status" class="bg-surface text-ink" x-text="st.label"></option>
-                            </template>
-                        </select>
+        <div x-show="filtered().length > 0">
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                <template x-for="item in pagedItems()" :key="item.id">
+                    <article class="card flex flex-col gap-3 p-5 transition" :class="item.status === 'used' ? 'opacity-70' : ''">
+                        <div class="flex flex-wrap items-center gap-2">
+                            <!-- Alpine inline status selector -->
+                            <select :value="item.status" @change="updateIdea(item, { status: $event.target.value })" aria-label="Idea status"
+                                class="cursor-pointer appearance-none rounded-full border-0 py-1 pl-2.5 pr-2.5 text-[11px] font-bold focus:outline-2 focus:outline-brand"
+                                :class="statusChip(item.status)">
+                                <template x-for="st in statuses" :key="st.key">
+                                    <option :value="st.key" :selected="st.key === item.status" class="bg-surface text-ink" x-text="st.label"></option>
+                                </template>
+                            </select>
 
-                        <!-- Alpine inline pillar selector -->
-                        <select :value="item.pillar" @change="updateIdea(item, { pillar: $event.target.value })" aria-label="Idea pillar"
-                            class="cursor-pointer appearance-none rounded-full border-0 bg-soft py-1 pl-2.5 pr-2.5 text-[11px] font-semibold text-muted focus:outline-2 focus:outline-brand">
-                            <option value="" class="bg-surface text-ink">No pillar</option>
-                            <template x-for="p in pillars" :key="p">
-                                <option :value="p" :selected="p === item.pillar" class="bg-surface text-ink" x-text="p"></option>
-                            </template>
-                        </select>
+                            <!-- Alpine inline pillar selector -->
+                            <select :value="item.pillar" @change="updateIdea(item, { pillar: $event.target.value })" aria-label="Idea pillar"
+                                class="cursor-pointer appearance-none rounded-full border-0 bg-soft py-1 pl-2.5 pr-2.5 text-[11px] font-semibold text-muted focus:outline-2 focus:outline-brand">
+                                <option value="" class="bg-surface text-ink">No pillar</option>
+                                <template x-for="p in pillars" :key="p">
+                                    <option :value="p" :selected="p === item.pillar" class="bg-surface text-ink" x-text="p"></option>
+                                </template>
+                            </select>
 
-                        <span class="ml-auto text-[11px] font-bold" :class="item.priority_cls">● <span x-text="item.priority_lbl"></span></span>
-                    </div>
+                            <span class="ml-auto text-[11px] font-bold" :class="item.priority_cls">● <span x-text="item.priority_lbl"></span></span>
+                        </div>
 
-                    <h2 class="text-[15px] font-extrabold leading-snug" x-text="item.title"></h2>
-                    <template x-if="item.notes">
-                        <p class="line-clamp-3 text-xs leading-relaxed text-muted" x-text="item.notes"></p>
-                    </template>
-
-                    <div class="mt-auto flex flex-wrap items-center gap-1.5 pt-1">
-                        <template x-if="item.status !== 'used'">
-                            <div class="flex items-center gap-1.5">
-                                <form method="post" :action="baseUrl + '/ideas/' + item.id + '/convert'">
-                                    <?= csrf_field() ?>
-                                    <button class="btn-dark !px-3.5 !py-2 !text-xs"><?= icon('calendar', 'size-3.5') ?>Turn into post</button>
-                                </form>
-                                <button type="button" @click="updateIdea(item, { status: item.status === 'saved' ? 'new' : 'saved' })"
-                                    class="grid size-9 place-items-center rounded-xl text-muted hover:bg-soft hover:text-ink"
-                                    :class="item.status === 'saved' ? '!text-amber-500' : ''"
-                                    :aria-label="item.status === 'saved' ? 'Unsave' : 'Save'"
-                                    :title="item.status === 'saved' ? 'Unsave' : 'Save'">
-                                    <?= icon('bookmark', 'size-4') ?>
-                                </button>
-                            </div>
+                        <h2 class="text-[15px] font-extrabold leading-snug" x-text="item.title"></h2>
+                        <template x-if="item.notes">
+                            <p class="line-clamp-3 text-xs leading-relaxed text-muted" x-text="item.notes"></p>
                         </template>
-                        <a :href="baseUrl + '/ideas/' + item.id + '/edit'" class="ml-auto grid size-9 place-items-center rounded-xl text-muted hover:bg-soft hover:text-ink" aria-label="Edit"><?= icon('pencil', 'size-4') ?></a>
-                        <button type="button" @click="deleteIdea(item)" class="grid size-9 place-items-center rounded-xl text-muted hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-500/10" aria-label="Delete" title="Delete"><?= icon('trash', 'size-4') ?></button>
-                    </div>
-                </article>
-            </template>
+
+                        <div class="mt-auto flex flex-wrap items-center gap-1.5 pt-1">
+                            <template x-if="item.status !== 'used'">
+                                <div class="flex items-center gap-1.5">
+                                    <form method="post" :action="baseUrl + '/ideas/' + item.id + '/convert'">
+                                        <?= csrf_field() ?>
+                                        <button class="btn-dark !px-3.5 !py-2 !text-xs"><?= icon('calendar', 'size-3.5') ?>Turn into post</button>
+                                    </form>
+                                    <button type="button" @click="updateIdea(item, { status: item.status === 'saved' ? 'new' : 'saved' })"
+                                        class="grid size-9 place-items-center rounded-xl text-muted hover:bg-soft hover:text-ink"
+                                        :class="item.status === 'saved' ? '!text-amber-500' : ''"
+                                        :aria-label="item.status === 'saved' ? 'Unsave' : 'Save'"
+                                        :title="item.status === 'saved' ? 'Unsave' : 'Save'">
+                                        <?= icon('bookmark', 'size-4') ?>
+                                    </button>
+                                </div>
+                            </template>
+                            <a :href="baseUrl + '/ideas/' + item.id + '/edit'" class="ml-auto grid size-9 place-items-center rounded-xl text-muted hover:bg-soft hover:text-ink" aria-label="Edit"><?= icon('pencil', 'size-4') ?></a>
+                            <button type="button" @click="deleteIdea(item)" class="grid size-9 place-items-center rounded-xl text-muted hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-500/10" aria-label="Delete" title="Delete"><?= icon('trash', 'size-4') ?></button>
+                        </div>
+                    </article>
+                </template>
+            </div>
+
+            <!-- Pagination Bar -->
+            <div x-show="totalPages() > 1" class="mt-4 flex flex-col items-center justify-center gap-2 rounded-3xl bg-surface px-4 py-3 text-center shadow-sm sm:flex-row sm:justify-between sm:text-left">
+                <p class="text-xs text-muted">
+                    Showing <b class="text-ink" x-text="((page - 1) * perPage) + 1"></b>–<b class="text-ink" x-text="Math.min(page * perPage, filtered().length)"></b>
+                    of <b class="text-ink" x-text="filtered().length"></b> ideas
+                </p>
+                <div class="flex items-center gap-1">
+                    <button type="button" @click="setPage(page - 1)" :disabled="page <= 1"
+                        class="grid size-9 place-items-center rounded-xl border border-line bg-surface text-xs font-bold text-ink transition hover:bg-soft disabled:opacity-40" aria-label="Previous page">
+                        <?= icon('chevron-left', 'size-4') ?>
+                    </button>
+                    <template x-for="p in pageNumbers()" :key="p">
+                        <button type="button" @click="setPage(p)"
+                            class="grid size-9 place-items-center rounded-xl text-xs font-extrabold transition"
+                            :class="p === page ? 'bg-hero text-white shadow-sm' : 'text-muted hover:bg-soft hover:text-ink'"
+                            x-text="p"></button>
+                    </template>
+                    <button type="button" @click="setPage(page + 1)" :disabled="page >= totalPages()"
+                        class="grid size-9 place-items-center rounded-xl border border-line bg-surface text-xs font-bold text-ink transition hover:bg-soft disabled:opacity-40" aria-label="Next page">
+                        <?= icon('chevron-right', 'size-4') ?>
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
     <?php

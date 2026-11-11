@@ -704,7 +704,9 @@
       priorities: cfg.priorities || [],
       status: cfg.status || '',
       pillar: cfg.pillar || '',
-      q: '',
+      q: cfg.q || '',
+      page: Number(cfg.page || 1),
+      perPage: Number(cfg.perPage || 6),
       newTitle: '',
       newPillar: (cfg.pillars && cfg.pillars[0]) || 'Education',
       newPriority: 'medium',
@@ -712,21 +714,38 @@
       csrf: cfg.csrf || '',
       baseUrl: cfg.baseUrl || '',
 
-      syncUrl() {
+      syncUrl(push = true) {
         const u = new URL(location.href);
         if (this.status) u.searchParams.set('status', this.status);
         else u.searchParams.delete('status');
         if (this.pillar) u.searchParams.set('pillar', this.pillar);
         else u.searchParams.delete('pillar');
-        history.pushState({}, '', u);
+        const q = (this.q || '').trim();
+        if (q) u.searchParams.set('q', q);
+        else u.searchParams.delete('q');
+        if (this.page > 1) u.searchParams.set('page', String(this.page));
+        else u.searchParams.delete('page');
+        if (push) history.pushState({}, '', u);
+        else history.replaceState({}, '', u);
       },
       setStatus(s) {
         this.status = s;
-        this.syncUrl();
+        this.page = 1;
+        this.syncUrl(true);
       },
       togglePillar(p) {
         this.pillar = this.pillar === p ? '' : p;
-        this.syncUrl();
+        this.page = 1;
+        this.syncUrl(true);
+      },
+      onFilterChange() {
+        this.page = 1;
+        this.syncUrl(false);
+      },
+      setPage(p) {
+        const max = this.totalPages();
+        this.page = Math.min(Math.max(1, p), max);
+        this.syncUrl(true);
       },
       countByStatus(k) {
         return this.items.filter((i) => i.status === k).length;
@@ -746,6 +765,19 @@
           }
           return true;
         });
+      },
+      totalPages() {
+        return Math.max(1, Math.ceil(this.filtered().length / this.perPage));
+      },
+      pagedItems() {
+        const list = this.filtered();
+        const max = Math.max(1, Math.ceil(list.length / this.perPage));
+        const cur = Math.min(Math.max(1, this.page), max);
+        const start = (cur - 1) * this.perPage;
+        return list.slice(start, start + this.perPage);
+      },
+      pageNumbers() {
+        return Array.from({ length: this.totalPages() }, (_, i) => i + 1);
       },
       async quickAdd() {
         if (!this.newTitle.trim() || this.saving) return;
@@ -793,6 +825,7 @@
             const data = await postAjax(`${this.baseUrl}/ideas/${item.id}/delete`, {}, this.csrf);
             if (data.ok) {
               this.items = this.items.filter((i) => Number(i.id) !== Number(item.id));
+              if (this.page > this.totalPages()) this.page = this.totalPages();
               A.store('toast').push(data.msg || 'Idea deleted', 'warn');
             }
           } catch {

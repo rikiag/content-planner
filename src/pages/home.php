@@ -138,9 +138,30 @@ function page_home(): void
             </div>
         </section>
 
-        <!-- Quick Idea Form -->
-        <section aria-labelledby="qidea-t">
+        <!-- Continue working -->
+        <section aria-labelledby="cont-t">
             <div class="mb-2.5 flex items-center justify-between">
+                <h2 id="cont-t" class="section-title">Continue Working</h2>
+                <a href="<?= e(url('/content?status=active')) ?>" class="text-xs font-bold text-accent hover:underline">View All</a>
+            </div>
+            <?php if ($cont): ?>
+                <div class="flex flex-col gap-2.5 rounded-[1.75rem] bg-peach p-3 sm:p-4">
+                    <?php foreach ($cont as $c): ?><?= continue_card($c) ?><?php endforeach; ?>
+                </div>
+            <?php else: ?>
+                <?= empty_state('check', 'All caught up', 'No drafts waiting right now. Time to plan your next post.', '<a href="' . e(url('/content/new')) . '" class="btn-primary mt-2">' . icon('plus', 'size-4') . 'New content</a>') ?>
+            <?php endif; ?>
+        </section>
+
+        <!-- Analytics (replaces Quick Access) -->
+        <?= render_analytics_section() ?>
+    </div>
+
+    <!-- ================= Right column ================= -->
+    <div class="flex min-w-0 flex-col gap-5">
+        <!-- Quick Idea Form -->
+        <section class="card p-5" aria-labelledby="qidea-t">
+            <div class="mb-3 flex items-center justify-between">
                 <h2 id="qidea-t" class="section-title">Quick Idea</h2>
                 <a href="<?= e(url('/ideas')) ?>" class="text-xs font-bold text-brand hover:underline">Idea Bank</a>
             </div>
@@ -164,40 +185,20 @@ function page_home(): void
                     finally { this.busy = false; }
                 } }"
                 @submit.prevent="submit()"
-                class="card flex flex-col gap-2 p-3 sm:flex-row sm:items-center sm:p-3.5">
+                class="flex flex-col gap-2.5">
                 <?= csrf_field() ?>
                 <input type="hidden" name="back" value="/">
-                <span class="hidden size-10 shrink-0 place-items-center rounded-2xl bg-amber-100 text-amber-600 sm:grid dark:bg-amber-400/15"><?= icon('bulb', 'size-5') ?></span>
-                <input name="title" x-model="title" required maxlength="160" placeholder="Capture a quick content idea…" class="input flex-1" aria-label="Quick idea title">
-                <select name="pillar" x-model="pillar" class="input sm:!w-44" aria-label="Pillar">
-                    <option value="">Pillar…</option>
-                    <?php foreach ($allPillars as $p): ?><option value="<?= e($p) ?>"><?= e($p) ?></option><?php endforeach; ?>
-                </select>
-                <button type="submit" class="btn-primary shrink-0" :disabled="busy"><?= icon('plus', 'size-4') ?>Save idea</button>
+                <input name="title" x-model="title" required maxlength="160" placeholder="Capture a quick content idea…" class="input" aria-label="Quick idea title">
+                <div class="flex items-center gap-2">
+                    <select name="pillar" x-model="pillar" class="input flex-1" aria-label="Pillar">
+                        <option value="">Pillar…</option>
+                        <?php foreach ($allPillars as $p): ?><option value="<?= e($p) ?>"><?= e($p) ?></option><?php endforeach; ?>
+                    </select>
+                    <button type="submit" class="btn-primary shrink-0" :disabled="busy"><?= icon('plus', 'size-4') ?>Save idea</button>
+                </div>
             </form>
         </section>
 
-        <!-- Continue working -->
-        <section aria-labelledby="cont-t">
-            <div class="mb-2.5 flex items-center justify-between">
-                <h2 id="cont-t" class="section-title">Continue Working</h2>
-                <a href="<?= e(url('/content?status=active')) ?>" class="text-xs font-bold text-accent hover:underline">View All</a>
-            </div>
-            <?php if ($cont): ?>
-                <div class="flex flex-col gap-2.5 rounded-[1.75rem] bg-peach p-3 sm:p-4">
-                    <?php foreach ($cont as $c): ?><?= continue_card($c) ?><?php endforeach; ?>
-                </div>
-            <?php else: ?>
-                <?= empty_state('check', 'All caught up', 'No drafts waiting right now. Time to plan your next post.', '<a href="' . e(url('/content/new')) . '" class="btn-primary mt-2">' . icon('plus', 'size-4') . 'New content</a>') ?>
-            <?php endif; ?>
-        </section>
-
-        <!-- Analytics (replaces Quick Access) -->
-        <?= render_analytics_section() ?>
-    </div>
-
-    <!-- ================= Right column ================= -->
-    <div class="flex min-w-0 flex-col gap-5">
         <section class="card p-5" aria-labelledby="wk-t">
             <h2 id="wk-t" class="section-title">Weekly Goal</h2>
             <div class="mt-3 flex items-center gap-4">

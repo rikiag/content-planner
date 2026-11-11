@@ -42,7 +42,17 @@
   .hover\:brightness-95:hover{filter:brightness(.95)}
   .items-stretch{align-items:stretch}
   .h-full{height:100%}
+  .flex-col{flex-direction:column}
   @media (min-width:40rem){
+    .sm\:gap-0{gap:0}
+    .sm\:border{border-style:var(--tw-border-style);border-width:1px}
+    .sm\:border-0{border-style:var(--tw-border-style);border-width:0}
+    .sm\:border-line{border-color:var(--c-line)}
+    .sm\:rounded-none{border-radius:0}
+    .sm\:rounded-2xl{border-radius:var(--radius-2xl)}
+    .sm\:bg-brandsoft\/40{background-color:color-mix(in oklab, var(--c-brand-soft) 40%, transparent)}
+    .sm\:divide-x>:not(:last-child){border-right:1px solid var(--c-line)}
+    .sm\:divide-line>:not(:last-child){border-color:var(--c-line)}
     .sm\:grid-cols-7{grid-template-columns:repeat(7,minmax(0,1fr))}
     .sm\:justify-between{justify-content:space-between}
     .sm\:pb-0{padding-bottom:0}

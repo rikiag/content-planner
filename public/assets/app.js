@@ -323,13 +323,14 @@
 
       filteredItems() {
         return this.items.filter((item) => {
-          if (this.status && item.status !== this.status) return false;
+          if (this.status === 'active') { if (item.status === 'published') return false; }
+          else if (this.status && item.status !== this.status) return false;
           return this.matchesBaseFilters(item);
         });
       },
 
       activeCount() {
-        return this.items.filter((item) => this.matchesBaseFilters(item)).length;
+        return this.items.filter((item) => item.status !== 'published' && this.matchesBaseFilters(item)).length;
       },
 
       statusCount(statusKey) {

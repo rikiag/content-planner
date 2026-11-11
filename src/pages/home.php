@@ -140,13 +140,13 @@ function page_home(): void
         </section>
 
         <!-- Continue working -->
-        <section aria-labelledby="cont-t">
+        <section aria-labelledby="cont-t" class="flex flex-1 flex-col">
             <div class="mb-2.5 flex items-center justify-between">
                 <h2 id="cont-t" class="section-title">Continue Working</h2>
                 <a href="<?= e(url('/content?status=active')) ?>" class="text-xs font-bold text-accent hover:underline">View All</a>
             </div>
             <?php if ($cont): ?>
-                <div class="flex flex-col gap-2.5 rounded-[1.75rem] bg-peach p-3 sm:p-4">
+                <div class="flex flex-1 flex-col gap-2.5 rounded-[1.75rem] bg-peach p-3 sm:p-4">
                     <?php foreach ($cont as $c): ?><?= continue_card($c) ?><?php endforeach; ?>
                 </div>
             <?php else: ?>
@@ -221,7 +221,7 @@ function page_home(): void
             </div>
         </section>
 
-        <section class="card p-5" aria-labelledby="best-t">
+        <section class="card flex-1 p-5" aria-labelledby="best-t">
             <div class="flex items-center justify-between">
                 <h2 id="best-t" class="section-title">Top Content</h2>
                 <span class="chip bg-soft text-muted">This month</span>

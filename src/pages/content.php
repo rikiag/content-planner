@@ -324,7 +324,7 @@ function page_contents(): void
                                     </div>
                                 </article>
                             </template>
-                            <template x-if="columnItems(st.key).length > 0">
+                            <template x-if="columnItems(st.key).length > 5">
                                 <button type="button" @click="viewAllStatus(st.key)" class="mt-1 w-full rounded-xl bg-surface/90 py-2 text-center text-xs font-extrabold text-brand transition hover:bg-surface">
                                     View all (<span x-text="columnItems(st.key).length"></span>) →
                                 </button>
@@ -406,11 +406,11 @@ function page_contents(): void
 
                     <!-- WEEK VIEW -->
                     <template x-if="calMode === 'week'">
-                        <div class="flex snap-x gap-2 overflow-x-auto pb-2 no-scrollbar sm:grid sm:grid-cols-7 sm:overflow-visible sm:pb-0">
+                        <div class="flex snap-x gap-2 overflow-x-auto pb-2 no-scrollbar sm:grid sm:grid-cols-7 sm:gap-0 sm:overflow-visible sm:pb-0 sm:divide-x sm:divide-line sm:rounded-2xl sm:border sm:border-line">
                             <template x-for="day in weekDays()" :key="day.date">
                                 <div @click="selectDate(day.date)"
-                                    class="flex min-h-40 w-44 shrink-0 snap-start cursor-pointer flex-col rounded-2xl border p-2.5 transition sm:min-h-56 sm:w-auto"
-                                    :class="day.date === selectedDate ? 'border-brand bg-brandsoft/40 ring-2 ring-brand' : 'border-line bg-soft2/60 hover:bg-soft'">
+                                    class="flex min-h-40 w-44 min-w-0 shrink-0 snap-start cursor-pointer flex-col rounded-2xl border p-2.5 transition sm:min-h-56 sm:w-auto sm:rounded-none sm:border-0"
+                                    :class="day.date === selectedDate ? 'border-brand bg-brandsoft/40 sm:bg-brandsoft/40' : 'border-line bg-soft2/60 hover:bg-soft'">
                                     <div class="mb-2 flex items-center justify-between border-b border-line pb-1.5">
                                         <span class="text-xs font-bold text-muted" x-text="day.dow"></span>
                                         <span class="grid size-6 place-items-center rounded-full text-xs font-extrabold"

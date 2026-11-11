@@ -107,7 +107,7 @@ function page_home(): void
                     </div>
                 </div>
                 <div class="shrink-0">
-                    <a href="<?= e(url($firstOpen ? '/content/' . $firstOpen : '/content/new')) ?>" class="inline-flex w-full items-center justify-center gap-2.5 rounded-2xl border-2 border-blue-400 bg-blue-500/20 py-2 pl-4 pr-2 text-xs font-bold shadow-lg backdrop-blur transition hover:bg-blue-500/35 active:scale-[.98] sm:w-auto">
+                    <a href="<?= e(url($firstOpen ? '/content/' . $firstOpen : '/content/new')) ?>" class="inline-flex w-full items-center justify-center gap-2.5 rounded-2xl border-2 border-blue-400 bg-blue-500/20 p-2 text-xs font-bold shadow-lg backdrop-blur transition hover:bg-blue-500/35 active:scale-[.98] sm:w-auto">
                         Continue Working <span class="grid size-7 place-items-center rounded-lg bg-slate-900/80"><?= icon('arrow-right', 'size-3.5') ?></span>
                     </a>
                 </div>

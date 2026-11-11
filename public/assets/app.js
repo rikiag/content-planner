@@ -294,6 +294,12 @@
         this.page = 1;
         this.syncUrl(true);
       },
+      viewAllStatus(s) {
+        this.status = s;
+        this.page = 1;
+        this.view = 'list';
+        this.syncUrl(true);
+      },
       onFilterChange() {
         this.page = 1;
         this.syncUrl(false);

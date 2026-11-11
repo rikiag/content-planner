@@ -293,7 +293,7 @@ function page_contents(): void
                             <span class="ml-auto rounded-full bg-surface px-2 py-0.5 text-[11px] font-bold" x-text="columnItems(st.key).length"></span>
                         </div>
                         <div class="flex min-h-24 flex-col gap-2.5">
-                            <template x-for="c in columnItems(st.key)" :key="c.id">
+                            <template x-for="c in columnItems(st.key).slice(0, 5)" :key="c.id">
                                 <article draggable="true"
                                     @dragstart="onDragStart($event, c.id)"
                                     @dragend="onDragEnd()"
@@ -323,6 +323,11 @@ function page_contents(): void
                                         </select>
                                     </div>
                                 </article>
+                            </template>
+                            <template x-if="columnItems(st.key).length > 0">
+                                <button type="button" @click="viewAllStatus(st.key)" class="mt-1 w-full rounded-xl bg-surface/90 py-2 text-center text-xs font-extrabold text-brand transition hover:bg-surface">
+                                    View all (<span x-text="columnItems(st.key).length"></span>) →
+                                </button>
                             </template>
                             <template x-if="columnItems(st.key).length === 0">
                                 <p class="rounded-2xl border border-dashed border-line px-3 py-6 text-center text-xs text-muted">Drop content here</p>

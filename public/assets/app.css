@@ -13,6 +13,7 @@
   .\!py-1\.5{padding-block:calc(var(--spacing) * 1.5)!important}
   .\!w-auto{width:auto!important}
   .w-14{width:calc(var(--spacing) * 14)}
+  .w-44{width:calc(var(--spacing) * 44)}
   .max-w-xs{max-width:20rem}
   .max-w-\[15rem\]{max-width:15rem}
   .max-h-\[90dvh\]{max-height:90dvh}
@@ -36,6 +37,8 @@
   .text-3xl{font-size:1.875rem;line-height:2.25rem}
   .text-emerald-300{color:var(--color-emerald-300)}
   @media (min-width:40rem){
+    .sm\:grid-cols-7{grid-template-columns:repeat(7,minmax(0,1fr))}
+    .sm\:pb-0{padding-bottom:0}
     .sm\:inline-block{display:inline-block}
     .sm\:min-h-56{min-height:calc(var(--spacing) * 56)}
     .sm\:px-6{padding-inline:calc(var(--spacing) * 6)}

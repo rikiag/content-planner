@@ -401,10 +401,10 @@ function page_contents(): void
 
                     <!-- WEEK VIEW -->
                     <template x-if="calMode === 'week'">
-                        <div class="grid grid-cols-1 gap-2 sm:grid-cols-7">
+                        <div class="flex snap-x gap-2 overflow-x-auto pb-2 no-scrollbar sm:grid sm:grid-cols-7 sm:overflow-visible sm:pb-0">
                             <template x-for="day in weekDays()" :key="day.date">
                                 <div @click="selectDate(day.date)"
-                                    class="flex min-h-24 cursor-pointer flex-col rounded-2xl border p-2.5 transition sm:min-h-56"
+                                    class="flex min-h-40 w-44 shrink-0 snap-start cursor-pointer flex-col rounded-2xl border p-2.5 transition sm:min-h-56 sm:w-auto"
                                     :class="day.date === selectedDate ? 'border-brand bg-brandsoft/40 ring-2 ring-brand' : 'border-line bg-soft2/60 hover:bg-soft'">
                                     <div class="mb-2 flex items-center justify-between border-b border-line pb-1.5">
                                         <span class="text-xs font-bold text-muted" x-text="day.dow"></span>

@@ -56,13 +56,14 @@ function field(string $name, string $label, string $type = 'text', mixed $val = 
 /** Full-page form wrapper with sticky mobile action bar */
 function form_shell(string $action, string $fieldsHtml, string $cancelHref, string $leftFooter = '', string $afterForm = ''): string
 {
+    $backHref = safe_back($cancelHref);
     return '<form method="post" action="' . e(url($action)) . '" class="mx-auto max-w-3xl" autocomplete="off">' . csrf_field()
         . '<input type="hidden" name="back" value="' . e(input('back')) . '">'
         . '<div class="card flex flex-col gap-4 p-5 sm:p-7">' . $fieldsHtml . '</div>'
         . '<div class="sticky bottom-[calc(4.6rem+env(safe-area-inset-bottom))] z-20 mt-4 flex flex-wrap items-center justify-between gap-2 rounded-3xl bg-surface/90 p-3 shadow-card backdrop-blur lg:static lg:bottom-auto lg:bg-transparent lg:p-0 lg:shadow-none">'
         . '<div>' . $leftFooter . '</div>'
         . '<div class="ml-auto flex items-center gap-2">'
-        . '<a href="' . e(url($cancelHref)) . '" class="btn-ghost">Cancel</a>'
+        . '<a href="' . e(url($backHref)) . '" @click.prevent="history.length > 1 ? history.back() : location.assign($el.href)" class="btn-ghost">Cancel</a>'
         . '<button type="submit" class="btn-primary">' . icon('check', 'size-4') . 'Save</button>'
         . '</div></div></form>' . $afterForm;
 }

@@ -201,7 +201,7 @@ function page_contents(): void
                 <div>
                     <div class="flex flex-col gap-3">
                         <template x-for="c in pagedItems()" :key="c.id">
-                            <article @click="openDetail(c)" class="card flex cursor-pointer flex-col gap-3 p-4 transition hover:shadow-md sm:flex-row sm:items-center sm:gap-4">
+                            <article @click="openDetail(c)" class="card flex cursor-pointer gap-3 p-4 transition hover:shadow-md sm:flex-row sm:items-center sm:gap-4">
                                 <div class="flex min-w-0 flex-1 items-start gap-3">
                                     <span class="grid size-11 shrink-0 place-items-center rounded-2xl text-xs font-extrabold" :class="c.platform_cls" x-text="c.platform_abbr"></span>
                                     <div class="min-w-0 flex-1">

@@ -381,7 +381,7 @@ function page(string $title, string $active, string $body, array $opts = []): vo
 
             <!-- ============ Main column ============ -->
             <div class="min-w-0 flex-1">
-                <header class="app-header sticky top-0 z-30 text-white lg:static lg:rounded-[1.75rem] lg:shadow-card">
+                <header x-data="{ searchOpen: <?= $active === 'search' ? 'true' : 'false' ?> }" class="app-header sticky top-0 z-30 text-white lg:static lg:rounded-[1.75rem] lg:shadow-card">
                     <div class="flex flex-wrap items-center gap-x-3 gap-y-3 px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] lg:px-6 lg:py-4">
                         <button class="icon-btn lg:hidden" @click="drawer = true" aria-label="Open menu" aria-controls="drawer" :aria-expanded="drawer"><?= icon('menu', 'size-5') ?></button>
                         <div class="min-w-0 flex-1 leading-tight lg:flex-none lg:basis-56">
@@ -389,15 +389,20 @@ function page(string $title, string $active, string $body, array $opts = []): vo
                             <p class="truncate text-[11px] font-medium text-white/80"><?= $sub ?></p>
                         </div>
 
-                        <form action="<?= e(url('/search')) ?>" method="get" role="search" class="order-last w-full lg:order-none lg:max-w-[22rem] lg:flex-1">
+                        <form action="<?= e(url('/search')) ?>" method="get" role="search"
+                            class="order-last <?= $active === 'search' ? 'block' : 'hidden' ?> w-full lg:order-none lg:block lg:max-w-[22rem] lg:flex-1"
+                            :class="searchOpen ? '!block' : 'hidden lg:block'">
                             <label class="relative block">
                                 <span class="sr-only">Search content</span>
                                 <span class="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted"><?= icon('search', 'size-4') ?></span>
-                                <input type="search" name="q" value="<?= e($active === 'search' ? input('q') : '') ?>" placeholder="Search content..." class="w-full rounded-2xl border-0 bg-white py-2.5 pl-10 pr-3 text-sm text-slate-800 shadow-sm placeholder:text-slate-400 focus:outline-2 focus:outline-white/70 dark:bg-slate-900/70 dark:text-white">
+                                <input x-ref="navSearchInput" type="search" name="q" value="<?= e($active === 'search' ? input('q') : '') ?>" placeholder="Search content..." class="w-full rounded-2xl border-0 bg-white py-2.5 pl-10 pr-3 text-sm text-slate-800 shadow-sm placeholder:text-slate-400 focus:outline-2 focus:outline-white/70 dark:bg-slate-900/70 dark:text-white">
                             </label>
                         </form>
 
                         <div class="flex items-center gap-1.5 sm:gap-2 lg:ml-auto">
+                            <button type="button" class="icon-btn lg:hidden" @click="searchOpen = !searchOpen; if (searchOpen) $nextTick(() => $refs.navSearchInput && $refs.navSearchInput.focus())" :aria-expanded="searchOpen" aria-label="Search">
+                                <?= icon('search', 'size-5') ?>
+                            </button>
                             <!-- Reminders dropdown -->
                             <div class="sm:relative" x-data="{ open: false }" @click.outside="open = false" @keydown.escape.window="open = false">
                                 <button class="icon-btn relative" @click="open = !open" :aria-expanded="open" aria-label="Reminders">

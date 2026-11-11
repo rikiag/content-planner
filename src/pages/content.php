@@ -335,7 +335,7 @@ function page_contents(): void
 
         <!-- ==================== 3. CALENDAR VIEW (DAY, WEEK, MONTH + SIDE CONTENT LIST) ==================== -->
         <div x-show="view === 'calendar'" <?= $view !== 'calendar' ? 'x-cloak' : '' ?> x-transition.opacity>
-            <div class="grid grid-cols-1 gap-5 lg:grid-cols-[1fr_22rem]">
+            <div class="grid grid-cols-1 gap-5" :class="calMode === 'month' ? 'lg:grid-cols-[1fr_22rem]' : ''">
                 <!-- Left Column: Calendar (Day / Week / Month) -->
                 <div class="card p-3 sm:p-5">
                     <!-- Calendar Header -->
@@ -470,8 +470,8 @@ function page_contents(): void
                     </template>
                 </div>
 
-                <!-- Right Column: 1 Kolom List Content untuk Tanggal yang Diklik (Default Hari Ini) -->
-                <aside class="card flex flex-col p-4 sm:p-5" aria-label="Content for selected date">
+                <!-- Right Column: 1 Kolom List Content untuk Tanggal yang Diklik (Hanya di Month View) -->
+                <aside x-show="calMode === 'month'" class="card flex flex-col p-4 sm:p-5" aria-label="Content for selected date">
                     <div class="mb-3 flex items-center justify-between gap-2 border-b border-line pb-3">
                         <div class="min-w-0">
                             <div class="flex items-center gap-1.5">

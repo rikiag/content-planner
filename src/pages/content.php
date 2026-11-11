@@ -169,7 +169,7 @@ function page_contents(): void
             </div>
 
             <!-- Status Filter Pills -->
-            <div class="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 no-scrollbar sm:mx-0 sm:flex-wrap sm:px-0">
+            <div x-show="view !== 'board'" <?= $view === 'board' ? 'x-cloak' : '' ?> class="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 no-scrollbar sm:mx-0 sm:flex-wrap sm:px-0">
                 <button type="button" class="pill" :aria-current="status === '' ? 'true' : 'false'" @click="setStatus('')">
                     All <b x-text="items.length"></b>
                 </button>

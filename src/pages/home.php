@@ -118,7 +118,7 @@ function page_home(): void
         <section aria-labelledby="pipe-t">
             <div class="mb-2.5 flex items-center justify-between">
                 <h2 id="pipe-t" class="section-title">Content Pipeline</h2>
-                <a href="<?= e(url('/content?v=board')) ?>" class="text-xs font-bold text-brand hover:underline">Open board</a>
+                <a href="<?= e(url('/content?view=board')) ?>" class="text-xs font-bold text-brand hover:underline">Open board</a>
             </div>
             <div class="-mx-4 flex snap-x scroll-px-4 gap-3 overflow-x-auto px-4 pb-2 no-scrollbar sm:mx-0 sm:grid sm:grid-cols-5 sm:overflow-visible sm:px-0">
                 <?php foreach ($allStatuses as $key => $m): ?>

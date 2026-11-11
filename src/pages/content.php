@@ -71,16 +71,19 @@ function content_row(array $c, string $back, bool $live = false): string
 
 function page_contents(): void
 {
-    $view = in_array(input('v'), ['board', 'calendar'], true) ? input('v') : 'list';
+    $rawView = input('view') ?: input('v');
+    $view = in_array($rawView, ['board', 'calendar'], true) ? $rawView : 'list';
     $status = input('status');
     $platform = input('platform');
     $camp = input('campaign');
     $search = input('q');
     $pageNum = max(1, (int) input('page', '1'));
-    $calMode = in_array(input('cal'), ['day', 'week', 'month'], true) ? input('cal') : 'month';
+    $rawCal = input('cal_mode') ?: input('cal');
+    $calMode = in_array($rawCal, ['day', 'week', 'month'], true) ? $rawCal : 'month';
     $selectedDate = preg_match('/^\d{4}-\d{2}-\d{2}$/', input('date')) ? input('date') : date('Y-m-d');
-    if (preg_match('/^\d{4}-\d{2}$/', input('m')) && !preg_match('/^\d{4}-\d{2}-\d{2}$/', input('date'))) {
-        $selectedDate = input('m') . '-01';
+    $rawYm = input('ym') ?: input('m');
+    if (preg_match('/^\d{4}-\d{2}$/', $rawYm) && !preg_match('/^\d{4}-\d{2}-\d{2}$/', input('date')) && $rawYm !== date('Y-m')) {
+        $selectedDate = $rawYm . '-01';
     }
 
     $rows = q('SELECT c.*, ca.name AS campaign_name FROM contents c LEFT JOIN campaigns ca ON ca.id=c.campaign_id ORDER BY (c.scheduled_at IS NULL), c.scheduled_at DESC, c.id DESC');
@@ -184,7 +187,7 @@ function page_contents(): void
         </div>
 
         <!-- ==================== 1. LIST VIEW ==================== -->
-        <div x-show="view === 'list'" x-transition.opacity>
+        <div x-show="view === 'list'" <?= $view !== 'list' ? 'x-cloak' : '' ?> x-transition.opacity>
             <template x-if="filteredItems().length === 0">
                 <div class="card grid place-items-center gap-2 px-6 py-12 text-center">
                     <div class="grid size-14 place-items-center rounded-2xl bg-soft text-brand"><?= icon('calendar', 'size-7') ?></div>
@@ -275,7 +278,7 @@ function page_contents(): void
         </div>
 
         <!-- ==================== 2. KANBAN BOARD VIEW (WITH DRAG & DROP) ==================== -->
-        <div x-show="view === 'board'" x-cloak x-transition.opacity>
+        <div x-show="view === 'board'" <?= $view !== 'board' ? 'x-cloak' : '' ?> x-transition.opacity>
             <div class="-mx-4 flex snap-x snap-mandatory scroll-px-4 gap-3 overflow-x-auto px-4 pb-3 no-scrollbar lg:mx-0 lg:grid lg:grid-cols-5 lg:overflow-visible lg:px-0">
                 <template x-for="st in statuses" :key="st.key">
                     <section class="w-[78vw] max-w-80 shrink-0 snap-center rounded-[1.5rem] p-3 transition sm:w-72 lg:w-auto lg:max-w-none"
@@ -331,7 +334,7 @@ function page_contents(): void
         </div>
 
         <!-- ==================== 3. CALENDAR VIEW (DAY, WEEK, MONTH + SIDE CONTENT LIST) ==================== -->
-        <div x-show="view === 'calendar'" x-cloak x-transition.opacity>
+        <div x-show="view === 'calendar'" <?= $view !== 'calendar' ? 'x-cloak' : '' ?> x-transition.opacity>
             <div class="grid grid-cols-1 gap-5 lg:grid-cols-[1fr_22rem]">
                 <!-- Left Column: Calendar (Day / Week / Month) -->
                 <div class="card p-3 sm:p-5">

@@ -571,8 +571,8 @@ function page_content_form(int $id = 0): void
     $leftDeleteBtn = '';
     $hiddenDeleteForm = '';
     if ($id) {
-        $leftDeleteBtn = '<button type="button" class="btn-ghost !text-rose-600" x-data @click="$store.confirm.ask(\'Delete this content item?\', () => document.getElementById(\'del-content-form\').submit())">'
-            . icon('trash', 'size-4') . 'Delete content</button>';
+        $leftDeleteBtn = '<button type="button" class="btn-ghost !text-rose-600" aria-label="Delete content" title="Delete content" x-data @click="$store.confirm.ask(\'Delete this content item?\', () => document.getElementById(\'del-content-form\').submit())">'
+            . icon('trash', 'size-4') . '<span class="hidden sm:inline">Delete content</span></button>';
         $hiddenDeleteForm = '<form id="del-content-form" method="post" action="' . e(url('/content/' . $id . '/delete')) . '" class="hidden">'
             . csrf_field()
             . '<input type="hidden" name="back" value="' . e(input('back')) . '">'

@@ -39,6 +39,7 @@
   .hover\:bg-surface:hover{background-color:var(--c-surface)}
   @media (min-width:40rem){
     .sm\:grid-cols-7{grid-template-columns:repeat(7,minmax(0,1fr))}
+    .sm\:justify-between{justify-content:space-between}
     .sm\:pb-0{padding-bottom:0}
     .sm\:inline-block{display:inline-block}
     .sm\:min-h-56{min-height:calc(var(--spacing) * 56)}

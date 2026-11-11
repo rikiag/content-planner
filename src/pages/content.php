@@ -251,7 +251,7 @@ function page_contents(): void
                     </div>
 
                     <!-- Pagination Bar -->
-                    <div x-show="totalPages() > 1" class="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-3xl bg-surface px-4 py-3 shadow-sm">
+                    <div x-show="totalPages() > 1" class="mt-4 flex flex-col items-center justify-center gap-2 rounded-3xl bg-surface px-4 py-3 text-center shadow-sm sm:flex-row sm:justify-between sm:text-left">
                         <p class="text-xs text-muted">
                             Showing <b class="text-ink" x-text="((page - 1) * perPage) + 1"></b>–<b class="text-ink" x-text="Math.min(page * perPage, filteredItems().length)"></b>
                             of <b class="text-ink" x-text="filteredItems().length"></b> items

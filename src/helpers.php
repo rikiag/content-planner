@@ -4,7 +4,7 @@ declare(strict_types=1);
 defined('ROOT') || (http_response_code(403) && exit);
 
 const APP_NAME = 'Content Planner';
-const APP_VERSION = '1.1.0';
+const APP_VERSION = '1.2.0';
 const GITHUB_URL = 'https://github.com/rikiag/content-planner';
 
 /* ====================== Domain constants ====================== */

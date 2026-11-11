@@ -284,9 +284,9 @@ function page_landing(): void
                             <span class="truncate font-mono text-[11px] font-semibold text-muted">https://rikiag.com/content-planner/</span>
                             <span class="hidden text-[11px] font-bold text-brand sm:inline">PWA · Offline Ready</span>
                         </div>
-                        <img src="<?= e(asset('assets/images/screenshot.webp')) ?>"
+                        <img src="<?= e(asset('assets/images/screenshot-2026-11-12.webp')) ?>"
                             alt="Content Planner Dashboard Screenshot showing monthly progress ring, quick access tiles, weekly posting goal, and top content rankings"
-                            width="1400" height="980"
+                            width="1336" height="939"
                             class="w-full rounded-2xl border border-line">
                     </div>
 

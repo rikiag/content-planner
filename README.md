@@ -1,6 +1,6 @@
 # Content Planner
 
-[![Version](https://img.shields.io/badge/version-v1.1.0-2563eb)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-v1.2.0-2563eb)](CHANGELOG.md)
 [![PHP](https://img.shields.io/badge/PHP-%3E%3D%208.2.35-777bb4)](https://www.php.net/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-10b981)](LICENSE)
 
@@ -11,13 +11,13 @@ A lightweight, free, and open-source self-hosted social media content planner bu
 - **Changelog & Release Notes:** [View changelog (`CHANGELOG.md`)](CHANGELOG.md) · [GitHub Releases](https://github.com/rikiag/content-planner/releases) · [Atom Feed](https://github.com/rikiag/content-planner/releases.atom)
 - **License:** [MIT License](LICENSE)
 
-![Content Planner Dashboard](public/assets/images/screenshot.webp)
+![Content Planner Dashboard](public/assets/images/screenshot-2026-11-12.webp)
 
 ---
 
 ## Quick Start
 
-> **Latest Release: `v1.1.0`** — [View changelog (`CHANGELOG.md`)](CHANGELOG.md) for new features, security updates, and upgrade instructions.
+> **Latest Release: `v1.2.0`** — [View changelog (`CHANGELOG.md`)](CHANGELOG.md) for new features, security updates, and upgrade instructions.
 
 ### 1. Clone from GitHub
 
@@ -68,7 +68,7 @@ Open the URL in your browser and **create your first account** (leave **"Start w
 1. **Back up your workspace data** (via `/export/backup.json` in the app or by copying your `data/` directory).
 2. **Pull the latest release** (`git pull` or upload the updated release files, preserving your `data/` folder and `config.local.php`).
 3. **Check the [`Upgrade` section in `CHANGELOG.md`](CHANGELOG.md)** for any release-specific manual steps (such as database schema migrations or new keys in `config.local.php`).
-   - **Upgrading from `v1.0.0` → `v1.1.0`:** No manual database migration or `config.local.php` changes are required. Custom categories are automatically stored in the per-user `settings` table, and the Service Worker (`sw.js`) refreshes its cache automatically using `APP_VERSION`.
+   - **Upgrading from `v1.1.1` → `v1.2.0`:** No manual database migration or `config.local.php` changes are required. Custom categories are automatically stored in the per-user `settings` table, and the Service Worker (`sw.js`) refreshes its cache automatically using `APP_VERSION`.
 
 ---
 

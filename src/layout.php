@@ -329,8 +329,8 @@ function page(string $title, string $active, string $body, array $opts = []): vo
                     <?php endforeach; ?>
                 </nav>
 
-                <div class="flex min-h-40 flex-1 flex-col gap-2 overflow-y-auto" x-data="{ open: false }">
-                    <div class="flex items-center gap-2 px-1">
+                <div class="flex min-h-40 flex-1 flex-col gap-2 overflow-y-auto rounded-3xl bg-note p-3.5 text-noteink" x-data="{ open: false }">
+                    <div class="flex items-center gap-2">
                         <span class="grid size-6 place-items-center rounded-md bg-amber-400/90 text-amber-950"><?= icon('note', 'size-3.5') ?></span>
                         <a href="<?= e(url('/notes')) ?>" class="text-xs font-extrabold">Notes</a>
                         <button type="button" class="ml-auto grid size-6 place-items-center rounded-full bg-amber-400 text-amber-950 transition active:scale-90"
@@ -338,18 +338,18 @@ function page(string $title, string $active, string $body, array $opts = []): vo
                             <span class="transition-transform" :class="{ 'rotate-45': open }"><?= icon('plus', 'size-3.5') ?></span>
                         </button>
                     </div>
-                    <form x-show="open" x-cloak x-transition method="post" action="<?= e(url('/notes')) ?>" class="rounded-2xl bg-note p-2.5 text-noteink">
+                    <form x-show="open" x-cloak x-transition method="post" action="<?= e(url('/notes')) ?>" class="rounded-2xl bg-white/40 p-2.5 text-noteink dark:bg-black/20">
                         <?= csrf_field() ?><input type="hidden" name="back" value="<?= e($back) ?>">
                         <textarea x-ref="t" name="body" required rows="3" maxlength="2000" placeholder="Write a note…" class="w-full resize-none rounded-xl border-0 bg-white/60 p-2 text-xs text-ink placeholder:text-noteink/60 focus:outline-2 focus:outline-amber-500 dark:bg-black/25 dark:text-white"></textarea>
                         <button class="mt-1.5 w-full rounded-lg bg-amber-400 py-1.5 text-[11px] font-bold text-amber-950">Save</button>
                     </form>
                     <?php if ($sideNotes): foreach ($sideNotes as $sn): ?>
                         <button type="button" @click="$dispatch('note-open', <?= e(json_encode(['body' => $sn['body'], 'cls' => NOTE_COLORS[$sn['color']] ?? NOTE_COLORS['yellow'], 'at' => fmt_dt($sn['updated_at'])], JSON_UNESCAPED_UNICODE)) ?>)"
-                            class="w-full rounded-2xl p-3 text-left transition hover:brightness-95 <?= NOTE_COLORS[$sn['color']] ?? NOTE_COLORS['yellow'] ?>">
+                            class="w-full rounded-2xl p-3 text-left shadow-sm transition hover:brightness-95 <?= NOTE_COLORS[$sn['color']] ?? NOTE_COLORS['yellow'] ?>">
                             <span class="block whitespace-pre-line break-words text-[11px] leading-relaxed line-clamp-4"><?= e($sn['body']) ?></span>
                         </button>
                     <?php endforeach; else: ?>
-                        <p class="rounded-2xl bg-note p-3 text-[11px] leading-relaxed text-noteink opacity-80">No notes yet. Tap + to jot something down.</p>
+                        <p class="text-[11px] leading-relaxed opacity-80">No notes yet. Tap + to jot something down.</p>
                     <?php endif; ?>
                 </div>
 

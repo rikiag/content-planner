@@ -42,9 +42,9 @@
   .hover\:brightness-95:hover{filter:brightness(.95)}
   .items-stretch{align-items:stretch}
   .h-full{height:100%}
-  .flex-col{flex-direction:column}
   @media (min-width:40rem){
     .sm\:gap-0{gap:0}
+    .sm\:overflow-hidden{overflow:hidden}
     .sm\:border{border-style:var(--tw-border-style);border-width:1px}
     .sm\:border-0{border-style:var(--tw-border-style);border-width:0}
     .sm\:border-line{border-color:var(--c-line)}

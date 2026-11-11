@@ -406,7 +406,7 @@ function page_contents(): void
 
                     <!-- WEEK VIEW -->
                     <template x-if="calMode === 'week'">
-                        <div class="flex snap-x gap-2 overflow-x-auto pb-2 no-scrollbar sm:grid sm:grid-cols-7 sm:gap-0 sm:overflow-visible sm:pb-0 sm:divide-x sm:divide-line sm:rounded-2xl sm:border sm:border-line">
+                        <div class="flex snap-x gap-2 overflow-x-auto pb-2 no-scrollbar sm:grid sm:grid-cols-7 sm:gap-0 sm:overflow-hidden sm:pb-0 sm:divide-x sm:divide-line sm:rounded-2xl sm:border sm:border-line">
                             <template x-for="day in weekDays()" :key="day.date">
                                 <div @click="selectDate(day.date)"
                                     class="flex min-h-40 w-44 min-w-0 shrink-0 snap-start cursor-pointer flex-col rounded-2xl border p-2.5 transition sm:min-h-56 sm:w-auto sm:rounded-none sm:border-0"
@@ -512,7 +512,7 @@ function page_contents(): void
                                 </div>
                                 <div class="mt-2.5 flex items-center justify-between gap-2 border-t border-line pt-2" @click.stop>
                                     <select :value="c.status" @change="changeStatus(c, $event.target.value)" aria-label="Change status"
-                                        class="cursor-pointer appearance-none rounded-full border-0 py-1 pl-2.5 pr-2.5 text-[10px] font-bold focus:outline-2 focus:outline-brand"
+                                        class="cursor-pointer appearance-none rounded-full border-0 px-2.5 py-1 text-[10px] font-bold focus:outline-2 focus:outline-brand"
                                         :class="statusChip(c.status)">
                                         <template x-for="st in statuses" :key="st.key">
                                             <option :value="st.key" :selected="st.key === c.status" class="bg-surface text-ink" x-text="st.label"></option>

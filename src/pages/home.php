@@ -92,7 +92,7 @@ function page_home(): void
         <section class="relative overflow-hidden rounded-3xl bg-linear-to-br from-hero to-hero2 p-4 text-white shadow-card sm:p-5" aria-labelledby="hero-t">
             <div class="pointer-events-none absolute -right-10 -top-16 size-56 rounded-full bg-blue-400/10 blur-2xl"></div>
             <div class="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <div class="flex min-w-0 flex-1 items-center gap-3.5 sm:gap-4">
+                <div class="flex min-w-0 flex-1 items-center gap-4">
                     <?= ring($monthPct, 68, 8, '<span class="text-sm font-extrabold">' . $monthPct . '%</span>', 'text-emerald-400', 'text-white/15') ?>
                     <div class="min-w-0 flex-1">
                         <p class="text-[11px] font-semibold text-white/70"><?= e(setting('studio', 'Move Studio')) ?></p>

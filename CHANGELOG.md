@@ -6,6 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-11-16
+
+### Added
+- Simple Markdown editor with formatting toolbar (Bold, Italic, Heading, Bullet/Numbered lists, Quote, Code, Link) and live Write/Preview toggle for Content **Caption / Script**, Campaign **Goal / Objective**, and Idea **Notes / Outline**.
+- XSS-safe Markdown rendering in the Content detail modal, Campaign detail view, Campaign cards, and Idea Bank cards.
+- Edit Idea modal in the Idea Bank so ideas can be edited inline without leaving the page (preserving active filters and pagination).
+
+### Changed
+- Improved status and pillar chip padding (`px-3 py-1.5 leading-none`) on Idea Bank cards.
+- Updated `action_idea_save` to redirect back cleanly using `safe_back()`.
+
+### Fixed
+- Stacked the **Continue Working** button below the monthly progress section on mobile in the Dashboard hero card, and refined hero gap spacing.
+- Dispatched `input` events from the Markdown editor toolbar so Alpine `x-model` stays synchronized when formatting text.
+
 ## [1.2.0] - 2026-11-12
 ![Content Planner Latest Screenshot](public/assets/images/screenshot-2026-11-12.webp)
 

@@ -19,7 +19,7 @@ function continue_card(array $c): string
     <a href="<?= e(url('/content/' . $c['id'])) ?>"
         @click.prevent="$store.contentModal.show(<?= e(json_encode($payload, JSON_UNESCAPED_UNICODE)) ?>)"
         class="group flex items-center gap-3 rounded-[1.4rem] bg-white/70 p-2.5 pr-3 shadow-sm transition hover:shadow-md dark:bg-white/5 sm:gap-4">
-        <span class="grid size-[4.5rem] shrink-0 place-items-center rounded-2xl bg-linear-to-br <?= $grad ?> text-center text-white shadow-md sm:size-20">
+        <span class="grid size-18 shrink-0 place-items-center rounded-2xl bg-linear-to-br <?= $grad ?> text-center text-white shadow-md sm:size-20">
             <span class="grid place-items-center gap-0.5"><?= icon('file', 'size-6') ?><span class="text-[10px] font-bold leading-none"><?= e($c['format']) ?> · <?= e(platform_abbr($c['platform'])) ?></span></span>
         </span>
         <span class="min-w-0 flex-1">
@@ -91,7 +91,7 @@ function page_home(): void
         <!-- Compact Hero progress -->
         <section class="relative overflow-hidden rounded-3xl bg-linear-to-br from-hero to-hero2 p-4 text-white shadow-card sm:p-5" aria-labelledby="hero-t">
             <div class="pointer-events-none absolute -right-10 -top-16 size-56 rounded-full bg-blue-400/10 blur-2xl"></div>
-            <div class="relative flex gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div class="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div class="flex min-w-0 flex-1 items-center gap-3.5 sm:gap-4">
                     <?= ring($monthPct, 68, 8, '<span class="text-sm font-extrabold">' . $monthPct . '%</span>', 'text-emerald-400', 'text-white/15') ?>
                     <div class="min-w-0 flex-1">

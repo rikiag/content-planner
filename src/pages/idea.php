@@ -109,7 +109,7 @@ function page_ideas(): void
                         <div class="flex flex-wrap items-center gap-2">
                             <!-- Alpine inline status selector -->
                             <select :value="item.status" @change="updateIdea(item, { status: $event.target.value })" aria-label="Idea status"
-                                class="cursor-pointer appearance-none rounded-full border-0 py-1 pl-2.5 pr-2.5 text-[11px] font-bold focus:outline-2 focus:outline-brand"
+                                class="cursor-pointer appearance-none rounded-full border-0 px-3 py-1.5 text-[11px] font-bold leading-none focus:outline-2 focus:outline-brand"
                                 :class="statusChip(item.status)">
                                 <template x-for="st in statuses" :key="st.key">
                                     <option :value="st.key" :selected="st.key === item.status" class="bg-surface text-ink" x-text="st.label"></option>
@@ -118,7 +118,7 @@ function page_ideas(): void
 
                             <!-- Alpine inline pillar selector -->
                             <select :value="item.pillar" @change="updateIdea(item, { pillar: $event.target.value })" aria-label="Idea pillar"
-                                class="cursor-pointer appearance-none rounded-full border-0 bg-soft py-1 pl-2.5 pr-2.5 text-[11px] font-semibold text-muted focus:outline-2 focus:outline-brand">
+                                class="cursor-pointer appearance-none rounded-full border-0 bg-soft px-3 py-1.5 text-[11px] font-semibold leading-none text-muted focus:outline-2 focus:outline-brand">
                                 <option value="" class="bg-surface text-ink">No pillar</option>
                                 <template x-for="p in pillars" :key="p">
                                     <option :value="p" :selected="p === item.pillar" class="bg-surface text-ink" x-text="p"></option>
@@ -130,7 +130,7 @@ function page_ideas(): void
 
                         <h2 class="text-[15px] font-extrabold leading-snug" x-text="item.title"></h2>
                         <template x-if="item.notes">
-                            <p class="line-clamp-3 text-xs leading-relaxed text-muted" x-text="item.notes"></p>
+                            <div class="md line-clamp-3 text-xs leading-relaxed text-muted" x-html="$md(item.notes)"></div>
                         </template>
 
                         <div class="mt-auto flex flex-wrap items-center gap-1.5 pt-1">
@@ -149,7 +149,7 @@ function page_ideas(): void
                                     </button>
                                 </div>
                             </template>
-                            <a :href="baseUrl + '/ideas/' + item.id + '/edit'" class="ml-auto grid size-9 place-items-center rounded-xl text-muted hover:bg-soft hover:text-ink" aria-label="Edit"><?= icon('pencil', 'size-4') ?></a>
+                            <button type="button" @click="openEdit(item)" class="ml-auto grid size-9 place-items-center rounded-xl text-muted hover:bg-soft hover:text-ink" aria-label="Edit" title="Edit"><?= icon('pencil', 'size-4') ?></button>
                             <button type="button" @click="deleteIdea(item)" class="grid size-9 place-items-center rounded-xl text-muted hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-500/10" aria-label="Delete" title="Delete"><?= icon('trash', 'size-4') ?></button>
                         </div>
                     </article>
@@ -180,6 +180,74 @@ function page_ideas(): void
                 </div>
             </div>
         </div>
+
+        <!-- Edit Idea Modal -->
+        <div x-show="editOpen" x-cloak x-transition.opacity @keydown.escape.window="editOpen = false" @click.self="editOpen = false"
+            class="fixed inset-0 z-[85] grid place-items-center overflow-y-auto bg-black/55 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-label="Edit idea">
+            <template x-if="edit">
+                <form method="post" :action="baseUrl + '/ideas/' + edit.id + '/edit'" class="card my-auto flex max-h-[90dvh] w-full max-w-2xl flex-col overflow-hidden">
+                    <?= csrf_field() ?>
+                    <input type="hidden" name="back" :value="'/ideas' + location.search">
+                    <div class="flex items-center justify-between border-b border-line p-5">
+                        <h3 class="text-base font-extrabold">Edit Idea</h3>
+                        <button type="button" class="grid size-8 place-items-center rounded-xl text-muted hover:bg-soft" @click="editOpen = false" aria-label="Close"><?= icon('x', 'size-4') ?></button>
+                    </div>
+                    <div class="flex flex-col gap-4 overflow-y-auto p-5">
+                        <div>
+                            <label for="idea-title" class="label">Idea <span class="text-rose-500">*</span></label>
+                            <input id="idea-title" name="title" x-model="edit.title" required maxlength="160" class="input">
+                        </div>
+                        <div>
+                            <label for="idea-notes" class="label">Notes / Outline</label>
+                            <div x-data="mdEditor(0)" class="md-wrap overflow-hidden rounded-2xl border border-line bg-surface">
+                                <div class="flex flex-wrap items-center gap-1 border-b border-line bg-soft2 p-1.5">
+                                    <button type="button" class="md-btn" @click="wrap('**','**')" aria-label="Bold" title="Bold"><b>B</b></button>
+                                    <button type="button" class="md-btn" @click="wrap('*','*')" aria-label="Italic" title="Italic"><i>I</i></button>
+                                    <button type="button" class="md-btn" @click="line('## ')" aria-label="Heading" title="Heading">H</button>
+                                    <button type="button" class="md-btn" @click="line('- ')" aria-label="Bullet list" title="Bullet list">•</button>
+                                    <button type="button" class="md-btn" @click="line('1. ')" aria-label="Numbered list" title="Numbered list">1.</button>
+                                    <button type="button" class="md-btn" @click="line('> ')" aria-label="Quote" title="Quote">“</button>
+                                    <button type="button" class="md-btn" @click="wrap('`','`')" aria-label="Code" title="Code">&lt;/&gt;</button>
+                                    <button type="button" class="md-btn" @click="link()" aria-label="Link" title="Link">🔗</button>
+                                    <div class="ml-auto flex items-center gap-1">
+                                        <button type="button" class="md-btn" :class="!preview && 'md-on'" @click="preview = false">Write</button>
+                                        <button type="button" class="md-btn" :class="preview && 'md-on'" @click="preview = true">Preview</button>
+                                    </div>
+                                </div>
+                                <textarea x-show="!preview" x-ref="ta" id="idea-notes" name="notes" x-model="edit.notes" rows="6" class="block w-full resize-y border-0 bg-transparent p-3 text-sm focus:outline-none"></textarea>
+                                <div x-show="preview" x-cloak class="md min-h-24 p-3 text-sm" x-html="$md(edit.notes) || '<span class=&quot;text-muted&quot;>Nothing to preview.</span>'"></div>
+                            </div>
+                            <p class="mt-1 text-[11px] text-muted">Markdown supported: **bold**, *italic*, lists, links.</p>
+                        </div>
+                        <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                            <div>
+                                <label for="idea-pillar" class="label">Pillar</label>
+                                <select id="idea-pillar" name="pillar" x-model="edit.pillar" class="input">
+                                    <option value="">— Select —</option>
+                                    <template x-for="p in pillars" :key="p"><option :value="p" x-text="p"></option></template>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="idea-priority" class="label">Priority</label>
+                                <select id="idea-priority" name="priority" x-model="edit.priority" class="input">
+                                    <?php foreach (PRIORITIES as $pk => $pl): ?><option value="<?= e($pk) ?>"><?= e($pl) ?></option><?php endforeach; ?>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="idea-status" class="label">Status</label>
+                                <select id="idea-status" name="status" x-model="edit.status" class="input">
+                                    <template x-for="st in statuses" :key="st.key"><option :value="st.key" x-text="st.label"></option></template>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-end gap-2 border-t border-line bg-soft2/50 p-5">
+                        <button type="button" class="btn-ghost" @click="editOpen = false">Cancel</button>
+                        <button type="submit" class="btn-primary"><?= icon('check', 'size-4') ?>Save</button>
+                    </div>
+                </form>
+            </template>
+        </div>
     </div>
     <?php
     page('Idea Bank', 'idea', (string) ob_get_clean(), ['subtitle' => 'Capture & organize content ideas']);
@@ -190,7 +258,7 @@ function page_idea_form(int $id): void
     $i = q1('SELECT * FROM ideas WHERE id=?', [$id]) ?? not_found();
     $allPillars = pillars();
     $f = field('title', 'Idea', 'text', $i['title'], ['req' => true, 'max' => 160])
-        . field('notes', 'Notes / Outline', 'textarea', $i['notes'], ['rows' => 5])
+        . field('notes', 'Notes / Outline', 'markdown', $i['notes'], ['rows' => 6])
         . '<div class="grid grid-cols-1 gap-4 sm:grid-cols-3">'
         . field('pillar', 'Pillar', 'select', $i['pillar'], ['options' => ['' => '— Select —'] + array_combine($allPillars, $allPillars)])
         . field('priority', 'Priority', 'select', $i['priority'], ['options' => PRIORITIES])
@@ -236,7 +304,7 @@ function action_idea_save(int $id): void
         isset(IDEA_STATUSES[input('status')]) ? input('status') : 'new', $id,
     ]);
     flash('Idea updated.');
-    redirect('/ideas');
+    redirect(safe_back('/ideas'));
 }
 
 function action_idea_status(int $id): void

@@ -99,7 +99,7 @@
       n: 0,
       max,
       init() { this.src = this.$refs.ta.value; this.n = this.src.length; },
-      sync() { this.src = this.$refs.ta.value; this.n = this.src.length; },
+      sync() { this.src = this.$refs.ta.value; this.n = this.src.length; this.$refs.ta.dispatchEvent(new Event('input', { bubbles: true })); },
       wrap(pre, post) {
         const ta = this.$refs.ta; const s = ta.selectionStart; const e = ta.selectionEnd;
         const sel = ta.value.slice(s, e) || 'text';
@@ -773,6 +773,9 @@
       newPillar: (cfg.pillars && cfg.pillars[0]) || 'Education',
       newPriority: 'medium',
       saving: false,
+      editOpen: false,
+      edit: null,
+      openEdit(item) { this.edit = { ...item, notes: item.notes || '', pillar: item.pillar || '' }; this.editOpen = true; },
       csrf: cfg.csrf || '',
       baseUrl: cfg.baseUrl || '',
 

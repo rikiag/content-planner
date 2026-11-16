@@ -60,6 +60,67 @@
   document.addEventListener('alpine:init', () => {
     const A = window.Alpine;
 
+    /* ----- Lightweight, XSS-safe Markdown renderer + simple editor ----- */
+    const mdEsc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    const mdInline = (s) => {
+      s = mdEsc(s);
+      s = s.replace(/`([^`]+)`/g, '<code>$1</code>');
+      s = s.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+      s = s.replace(/(^|[^*])\*([^*\s][^*]*)\*/g, '$1<em>$2</em>');
+      s = s.replace(/\[([^\]]+)\]\(((?:https?:\/\/|mailto:)[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+      return s;
+    };
+    const cpMarkdown = (text) => {
+      const lines = String(text || '').replace(/\r\n?/g, '\n').split('\n');
+      const out = [];
+      let list = null;
+      let para = [];
+      const flushPara = () => { if (para.length) { out.push('<p>' + para.map(mdInline).join('<br>') + '</p>'); para = []; } };
+      const flushList = () => { if (list) { out.push(`</${list}>`); list = null; } };
+      for (const line of lines) {
+        let m;
+        if (!line.trim()) { flushPara(); flushList(); continue; }
+        if ((m = /^(#{1,3})\s+(.*)$/.exec(line))) { flushPara(); flushList(); out.push(`<h${m[1].length + 2}>${mdInline(m[2])}</h${m[1].length + 2}>`); continue; }
+        if ((m = /^\s*[-*]\s+(.*)$/.exec(line))) { flushPara(); if (list !== 'ul') { flushList(); out.push('<ul>'); list = 'ul'; } out.push('<li>' + mdInline(m[1]) + '</li>'); continue; }
+        if ((m = /^\s*\d+\.\s+(.*)$/.exec(line))) { flushPara(); if (list !== 'ol') { flushList(); out.push('<ol>'); list = 'ol'; } out.push('<li>' + mdInline(m[1]) + '</li>'); continue; }
+        if ((m = /^>\s?(.*)$/.exec(line))) { flushPara(); flushList(); out.push('<blockquote>' + mdInline(m[1]) + '</blockquote>'); continue; }
+        flushList();
+        para.push(line);
+      }
+      flushPara(); flushList();
+      return out.join('');
+    };
+    window.cpMarkdown = cpMarkdown;
+    A.magic('md', () => cpMarkdown);
+
+    A.data('mdEditor', (max = 0) => ({
+      preview: false,
+      src: '',
+      n: 0,
+      max,
+      init() { this.src = this.$refs.ta.value; this.n = this.src.length; },
+      sync() { this.src = this.$refs.ta.value; this.n = this.src.length; },
+      wrap(pre, post) {
+        const ta = this.$refs.ta; const s = ta.selectionStart; const e = ta.selectionEnd;
+        const sel = ta.value.slice(s, e) || 'text';
+        ta.setRangeText(pre + sel + post, s, e, 'end');
+        ta.focus(); ta.setSelectionRange(s + pre.length, s + pre.length + sel.length);
+        this.sync();
+      },
+      line(prefix) {
+        const ta = this.$refs.ta; const s = ta.selectionStart;
+        const start = ta.value.lastIndexOf('\n', s - 1) + 1;
+        ta.setRangeText(prefix, start, start, 'end');
+        ta.focus(); this.sync();
+      },
+      link() {
+        const ta = this.$refs.ta; const s = ta.selectionStart; const e = ta.selectionEnd;
+        const sel = ta.value.slice(s, e) || 'link text';
+        ta.setRangeText(`[${sel}](https://)`, s, e, 'end');
+        ta.focus(); this.sync();
+      },
+    }));
+
     /* ----- Theme: light / dark / system ----- */
     A.store('theme', {
       pref: readPref(),

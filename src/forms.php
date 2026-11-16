@@ -17,6 +17,28 @@ function field(string $name, string $label, string $type = 'text', mixed $val = 
     $html = '<div class="' . e($span) . '"><label for="' . $id . '" class="label">' . e($label) . (!empty($o['req']) ? ' <span class="text-rose-500">*</span>' : '') . '</label>';
 
     switch ($type) {
+        case 'markdown':
+            $max = (int) ($o['counter'] ?? 0);
+            $html .= '<div x-data="mdEditor(' . $max . ')" class="md-wrap overflow-hidden rounded-2xl border border-line bg-surface">'
+                . '<div class="flex flex-wrap items-center gap-1 border-b border-line bg-soft2 p-1.5">'
+                . '<button type="button" class="md-btn" @click="wrap(\'**\',\'**\')" aria-label="Bold" title="Bold"><b>B</b></button>'
+                . '<button type="button" class="md-btn" @click="wrap(\'*\',\'*\')" aria-label="Italic" title="Italic"><i>I</i></button>'
+                . '<button type="button" class="md-btn" @click="line(\'## \')" aria-label="Heading" title="Heading">H</button>'
+                . '<button type="button" class="md-btn" @click="line(\'- \')" aria-label="Bullet list" title="Bullet list">•</button>'
+                . '<button type="button" class="md-btn" @click="line(\'1. \')" aria-label="Numbered list" title="Numbered list">1.</button>'
+                . '<button type="button" class="md-btn" @click="line(\'> \')" aria-label="Quote" title="Quote">“</button>'
+                . '<button type="button" class="md-btn" @click="wrap(\'`\',\'`\')" aria-label="Code" title="Code">&lt;/&gt;</button>'
+                . '<button type="button" class="md-btn" @click="link()" aria-label="Link" title="Link">🔗</button>'
+                . '<div class="ml-auto flex items-center gap-1">'
+                . '<button type="button" class="md-btn" :class="!preview && \'md-on\'" @click="preview = false">Write</button>'
+                . '<button type="button" class="md-btn" :class="preview && \'md-on\'" @click="preview = true">Preview</button>'
+                . '</div></div>'
+                . '<textarea x-show="!preview" x-ref="ta" id="' . $id . '" name="' . e($name) . '" rows="' . (int) ($o['rows'] ?? 5) . '" class="block w-full resize-y border-0 bg-transparent p-3 text-sm focus:outline-none"' . ($max ? ' maxlength="' . $max . '"' : '') . $ph . $req . ' ' . $extra . ' @input="n = $el.value.length; src = $el.value">' . e($val) . '</textarea>'
+                . '<div x-show="preview" x-cloak class="md min-h-24 p-3 text-sm" x-html="$md(src) || \'<span class=&quot;text-muted&quot;>Nothing to preview.</span>\'"></div>'
+                . '</div>'
+                . '<p class="mt-1 flex justify-between text-[11px] text-muted" x-data="{}"><span>Markdown supported: **bold**, *italic*, lists, links.</span>'
+                . ($max ? '<span>max ' . $max . '</span>' : '') . '</p>';
+            break;
         case 'textarea':
             if (!empty($o['counter'])) {
                 $max = (int) $o['counter'];

@@ -211,9 +211,9 @@ function layout_overlays(array $flashes): void
                                 <button type="button" class="text-xs font-bold text-brand hover:underline" @click="$copy($store.contentModal.item.caption)"><?= icon('copy', 'size-3.5 inline') ?> Copy caption</button>
                             </template>
                         </div>
-                        <div class="rounded-2xl border border-line bg-soft2 p-3.5 text-xs leading-relaxed whitespace-pre-line"
+                        <div class="md rounded-2xl border border-line bg-soft2 p-3.5 text-xs leading-relaxed"
                             :class="$store.contentModal.item.caption ? 'text-ink' : 'text-muted'"
-                            x-text="$store.contentModal.item.caption || 'No caption or script added yet.'"></div>
+                            x-html="$store.contentModal.item.caption ? $md($store.contentModal.item.caption) : 'No caption or script added yet.'"></div>
                     </div>
 
                     <!-- Hashtags -->

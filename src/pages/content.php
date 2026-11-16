@@ -559,7 +559,7 @@ function page_content_form(int $id = 0): void
         . field('scheduled_at', 'Scheduled Date & Time', 'datetime', to_input_dt($c['scheduled_at']))
         . '</div>'
         . field('progress', 'Completion Progress', 'range', (int) $c['progress'], ['step' => 5])
-        . field('caption', 'Caption / Script', 'textarea', $c['caption'], ['rows' => 5, 'counter' => 2200, 'ph' => 'Write your caption or script outline here…'])
+        . field('caption', 'Caption / Script', 'markdown', $c['caption'], ['rows' => 5, 'counter' => 2200, 'ph' => 'Write your caption or script outline here…'])
         . field('hashtags', 'Hashtags', 'text', $c['hashtags'], ['ph' => '#movestudio #dailymovement'])
         . section_label('Performance Metrics (fill after publishing)')
         . field('post_url', 'Published Post URL', 'url', $c['post_url'], ['ph' => 'https://…'])

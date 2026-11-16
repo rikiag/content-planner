@@ -103,7 +103,7 @@ function page_campaigns(): void
                         <span class="pointer-events-none absolute right-4 top-4 opacity-30"><?= icon('flag', 'size-10') ?></span>
                     </div>
                     <a :href="baseUrl + '/campaigns/' + c.id" class="flex flex-1 flex-col gap-3 p-5">
-                        <p class="line-clamp-2 text-xs text-muted" x-text="c.goal"></p>
+                        <div class="md line-clamp-2 text-xs text-muted" x-html="$md(c.goal)"></div>
                         <div>
                             <div class="mb-1 flex justify-between text-[11px] font-bold">
                                 <span><span x-text="c.done"></span>/<span x-text="c.total"></span> posts published</span>
@@ -169,7 +169,7 @@ function page_campaign_detail(int $id): void
                 </div>
                 <a href="<?= e(url('/campaigns/' . $id . '/edit')) ?>" class="btn bg-white/20 text-white hover:bg-white/30"><?= icon('pencil', 'size-4') ?>Edit</a>
             </div>
-            <?php if ($c['goal']): ?><p class="mt-3 max-w-2xl text-sm leading-relaxed text-white/95"><?= e($c['goal']) ?></p><?php endif; ?>
+            <?php if ($c['goal']): ?><div class="md mt-3 max-w-2xl text-sm leading-relaxed text-white/95" x-html="$md(<?= e(json_encode($c['goal'], JSON_UNESCAPED_UNICODE)) ?>)"></div><?php endif; ?>
             <div class="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
                 <div class="rounded-2xl bg-white/15 px-4 py-3"><div class="text-[11px] font-semibold text-white/80">Posts</div><div class="text-xl font-extrabold" x-text="items.length"><?= (int) $s['total'] ?></div></div>
                 <div class="rounded-2xl bg-white/15 px-4 py-3"><div class="text-[11px] font-semibold text-white/80">Published</div><div class="text-xl font-extrabold" x-text="publishedCount()"><?= (int) $s['done'] ?></div></div>
@@ -284,7 +284,7 @@ function page_campaign_form(int $id = 0): void
             . '<span class="block size-10 rounded-2xl bg-linear-to-br ' . $grad . ' ring-offset-2 ring-offset-[var(--c-surface)] transition peer-checked:ring-2 peer-checked:ring-brand peer-focus-visible:ring-2"></span><span class="sr-only">' . e($k) . '</span></label>';
     }
     $f = field('name', 'Campaign Name', 'text', $c['name'], ['req' => true, 'max' => 120])
-        . field('goal', 'Goal / Objective', 'textarea', $c['goal'], ['rows' => 3, 'ph' => 'What do you want to achieve?'])
+        . field('goal', 'Goal / Objective', 'markdown', $c['goal'], ['rows' => 4, 'ph' => 'What do you want to achieve?'])
         . '<div class="grid grid-cols-1 gap-4 sm:grid-cols-3">'
         . field('status', 'Status', 'select', $c['status'], ['options' => array_map(fn($s) => $s['label'], CAMPAIGN_STATUSES)])
         . field('start_date', 'Start Date', 'date', $c['start_date'])

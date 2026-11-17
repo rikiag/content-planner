@@ -72,7 +72,7 @@ function page_campaigns(): void
                     </button>
                 </template>
             </div>
-            <a href="<?= e(url('/campaigns/new')) ?>" class="btn-primary shrink-0 !px-3.5 sm:!px-4" aria-label="New campaign"><?= icon('plus', 'size-4') ?><span class="hidden sm:inline">Campaign</span></a>
+            <a href="<?= e(url('campaigns/new')) ?>" class="btn-primary shrink-0 !px-3.5 sm:!px-4" aria-label="New campaign"><?= icon('plus', 'size-4') ?><span class="hidden sm:inline">Campaign</span></a>
         </div>
 
         <template x-if="filtered().length === 0">
@@ -80,7 +80,7 @@ function page_campaigns(): void
                 <div class="grid size-14 place-items-center rounded-2xl bg-soft text-brand"><?= icon('flag', 'size-7') ?></div>
                 <h3 class="text-base font-extrabold">No campaigns found</h3>
                 <p class="max-w-sm text-sm text-muted">Group your content into campaigns to track goals and results.</p>
-                <a href="<?= e(url('/campaigns/new')) ?>" class="btn-primary mt-2"><?= icon('plus', 'size-4') ?>Create campaign</a>
+                <a href="<?= e(url('campaigns/new')) ?>" class="btn-primary mt-2"><?= icon('plus', 'size-4') ?>Create campaign</a>
             </div>
         </template>
 
@@ -96,13 +96,13 @@ function page_campaigns(): void
                                 </template>
                             </select>
                         </div>
-                        <a :href="baseUrl + '/campaigns/' + c.id" class="mt-2 block">
+                        <a :href="baseUrl + 'campaigns/' + c.id" class="mt-2 block">
                             <h2 class="text-lg font-extrabold leading-snug hover:underline" x-text="c.name"></h2>
                             <p class="mt-1 text-xs text-white/85"><span x-text="c.start_fmt"></span> – <span x-text="c.end_fmt"></span></p>
                         </a>
                         <span class="pointer-events-none absolute right-4 top-4 opacity-30"><?= icon('flag', 'size-10') ?></span>
                     </div>
-                    <a :href="baseUrl + '/campaigns/' + c.id" class="flex flex-1 flex-col gap-3 p-5">
+                    <a :href="baseUrl + 'campaigns/' + c.id" class="flex flex-1 flex-col gap-3 p-5">
                         <div class="md line-clamp-2 text-xs text-muted" x-html="$md(c.goal)"></div>
                         <div>
                             <div class="mb-1 flex justify-between text-[11px] font-bold">
@@ -157,7 +157,7 @@ function page_campaign_detail(int $id): void
                     <h2 class="mt-2 text-2xl font-extrabold leading-tight"><?= e($c['name']) ?></h2>
                     <p class="mt-1 text-sm text-white/90"><?= e(fmt_date($c['start_date'])) ?> – <?= e(fmt_date($c['end_date'])) ?></p>
                 </div>
-                <a href="<?= e(url('/campaigns/' . $id . '/edit')) ?>" class="btn bg-white/20 text-white hover:bg-white/30"><?= icon('pencil', 'size-4') ?>Edit</a>
+                <a href="<?= e(url('campaigns/' . $id . '/edit')) ?>" class="btn bg-white/20 text-white hover:bg-white/30"><?= icon('pencil', 'size-4') ?>Edit</a>
             </div>
             <?php if ($c['goal']): ?><div class="md mt-3 max-w-2xl text-sm leading-relaxed text-white/95" x-html="$md(<?= e(json_encode($c['goal'], JSON_UNESCAPED_UNICODE)) ?>)"></div><?php endif; ?>
             <div class="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -182,7 +182,7 @@ function page_campaign_detail(int $id): void
             'emptyText'          => 'Add the first post to this campaign.',
         ]); ?>
 
-        <div class="text-right"><?= delete_form('/campaigns/' . $id . '/delete', 'Delete this campaign? Posts inside it will not be deleted.', 'Delete campaign') ?></div>
+        <div class="text-right"><?= delete_form('campaigns/' . $id . '/delete', 'Delete this campaign? Posts inside it will not be deleted.', 'Delete campaign') ?></div>
     </div>
     <?php
     page($c['name'], 'campaign', (string) ob_get_clean(), ['subtitle' => 'Campaign details']);
@@ -214,11 +214,11 @@ function page_campaign_form(int $id = 0): void
     if ($id) {
         $leftDeleteBtn = '<button type="button" class="btn-ghost !text-rose-600" aria-label="Delete campaign" title="Delete campaign" x-data @click="$store.confirm.ask(\'Delete this campaign?\', () => document.getElementById(\'del-campaign-form\').submit())">'
             . icon('trash', 'size-4') . '<span class="hidden sm:inline">Delete campaign</span></button>';
-        $hiddenDeleteForm = '<form id="del-campaign-form" method="post" action="' . e(url('/campaigns/' . $id . '/delete')) . '" class="hidden">'
+        $hiddenDeleteForm = '<form id="del-campaign-form" method="post" action="' . e(url('campaigns/' . $id . '/delete')) . '" class="hidden">'
             . csrf_field() . '</form>';
     }
 
-    page($id ? 'Edit Campaign' : 'New Campaign', 'campaign', form_shell($id ? "/campaigns/$id/edit" : '/campaigns/new', $f, $id ? "/campaigns/$id" : '/campaigns', $leftDeleteBtn, $hiddenDeleteForm), ['subtitle' => $id ? e($c['name']) : 'Create a new campaign']);
+    page($id ? 'Edit Campaign' : 'New Campaign', 'campaign', form_shell($id ? "campaigns/$id/edit" : 'campaigns/new', $f, $id ? "campaigns/$id" : '/campaigns', $leftDeleteBtn, $hiddenDeleteForm), ['subtitle' => $id ? e($c['name']) : 'Create a new campaign']);
 }
 
 function action_campaign_save(int $id = 0): void
@@ -226,18 +226,18 @@ function action_campaign_save(int $id = 0): void
     $name = mb_substr(input('name'), 0, 120);
     if ($name === '') {
         flash('Campaign name is required.', 'err');
-        redirect($id ? "/campaigns/$id/edit" : '/campaigns/new');
+        redirect($id ? "campaigns/$id/edit" : 'campaigns/new');
     }
     $date = fn(string $k) => preg_match('/^\d{4}-\d{2}-\d{2}$/', input($k)) ? input($k) : null;
     $vals = [$name, input('goal'), isset(CAMPAIGN_STATUSES[input('status')]) ? input('status') : 'planned', $date('start_date'), $date('end_date'), isset(CAMPAIGN_COLORS[input('color')]) ? input('color') : 'blue'];
     if ($id) {
         exec_sql('UPDATE campaigns SET name=?,goal=?,status=?,start_date=?,end_date=?,color=? WHERE id=?', [...$vals, $id]);
         flash('Campaign updated.');
-        redirect("/campaigns/$id");
+        redirect("campaigns/$id");
     }
     exec_sql('INSERT INTO campaigns(name,goal,status,start_date,end_date,color) VALUES(?,?,?,?,?,?)', $vals);
     flash('Campaign created.');
-    redirect('/campaigns/' . (int) db()->lastInsertId());
+    redirect('campaigns/' . (int) db()->lastInsertId());
 }
 
 function action_campaign_status(int $id): void
@@ -256,7 +256,7 @@ function action_campaign_status(int $id): void
         json_out(['ok' => true, 'msg' => $msg, 'status' => $s]);
     }
     flash($msg);
-    redirect(safe_back('/campaigns/' . $id));
+    redirect(safe_back('campaigns/' . $id));
 }
 
 function action_campaign_delete(int $id): void

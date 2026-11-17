@@ -22,29 +22,43 @@ function page_landing(): void
             'icon'  => 'calendar',
             'color' => 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300',
             'badge' => '/content',
-            'title' => 'List, Kanban Board & Calendar',
-            'desc'  => 'Switch effortlessly between a detailed list, a 5-stage Kanban board (Idea → Draft → Review → Scheduled → Published), and a monthly calendar grid with inline status cycling.',
+            'title' => 'List, Drag & Drop Board & Calendar',
+            'desc'  => 'Switch between a paginated List, a drag-and-drop Kanban Board, and a Day / Week / Month Calendar with a Selected Date side panel. Includes Order By (closest to now by default), saved view state, and a Global Detail modal.',
         ],
         [
             'icon'  => 'home',
             'color' => 'bg-sky-100 text-sky-700 dark:bg-sky-500/20 dark:text-sky-300',
             'badge' => '/',
             'title' => 'Actionable Studio Dashboard',
-            'desc'  => 'Track monthly publishing progress, weekly posting goals, consecutive posting streaks, overdue & 24-hour reminders, in-progress drafts, and top-performing content.',
+            'desc'  => 'Capture Quick Ideas, track monthly publishing rings, follow Weekly Goal days straight into Calendar Day view, monitor posting streaks & 24-hour reminders, and preview embedded analytics.',
         ],
         [
             'icon'  => 'flag',
             'color' => 'bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300',
             'badge' => '/campaigns',
             'title' => 'Goal-Driven Campaigns',
-            'desc'  => 'Group social posts into color-coded campaigns with date ranges and objectives. Automatically aggregate published post counts, total views, and engagement rates.',
+            'desc'  => 'Group posts into color-coded campaigns with search and status filters. Inside each campaign, manage assigned content with List, Board, and Calendar views, filters, and aggregated views & ER%.',
         ],
         [
             'icon'  => 'bulb',
             'color' => 'bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300',
             'badge' => '/ideas',
             'title' => 'Idea Bank & 1-Click Conversion',
-            'desc'  => 'Capture fleeting hooks and concepts in seconds. Tag ideas by content pillar and priority (Low, Medium, High), then convert any idea into a scheduled draft with one click.',
+            'desc'  => 'Capture hooks in seconds, edit ideas inline in a modal with Markdown notes, filter reactively by status or pillar with pagination, and convert any idea into a scheduled post in one click.',
+        ],
+        [
+            'icon'  => 'tag',
+            'color' => 'bg-violet-100 text-violet-700 dark:bg-violet-500/20 dark:text-violet-300',
+            'badge' => '/categories',
+            'title' => 'Custom Workspace Labels',
+            'desc'  => 'Customize your own Platforms, Formats, Content Pillars, and Pipeline Statuses with custom color badges, abbreviations, icons, and default completion percentages.',
+        ],
+        [
+            'icon'  => 'pencil',
+            'color' => 'bg-sky-100 text-sky-700 dark:bg-sky-500/20 dark:text-sky-300',
+            'badge' => 'Markdown',
+            'title' => 'Markdown Editor & Safe Preview',
+            'desc'  => 'Format Content captions, Campaign goals, and Idea notes with a toolbar (Bold, Italic, Headings, Lists, Quote, Code, Link), live Write/Preview toggle, and XSS-safe rendering across cards and modals.',
         ],
         [
             'icon'  => 'folder',
@@ -64,8 +78,8 @@ function page_landing(): void
             'icon'  => 'note',
             'color' => 'bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300',
             'badge' => '/notes · /search',
-            'title' => 'Pinned Sticky Notes & Global Search',
-            'desc'  => 'Jot down color-coded sticky notes with pinning right in your sidebar, and search across content, campaigns, ideas, resources, and notes simultaneously.',
+            'title' => 'Sticky Notes & Global Search',
+            'desc'  => 'Jot down color-coded sticky notes with pinning—your latest 3 notes appear right in the sidebar with a detail modal—and search across content, campaigns, ideas, resources, and notes.',
         ],
         [
             'icon'  => 'sheet',
@@ -80,6 +94,13 @@ function page_landing(): void
             'badge' => 'PWA · Dark Mode',
             'title' => 'Installable PWA & System Dark Mode',
             'desc'  => 'Install on iOS, Android, macOS, or Windows with offline page caching via Service Worker. Flicker-free Light, Dark, and System themes synced across tabs.',
+        ],
+        [
+            'icon'  => 'sparkle',
+            'color' => 'bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300',
+            'badge' => '/changelog',
+            'title' => 'Built-in Release Notes & Security',
+            'desc'  => 'Stay updated with an integrated changelog parsed from CHANGELOG.md and unread release badges, backed by physical per-user SQLite isolation and strict CSP nonces.',
         ],
     ];
 
@@ -107,18 +128,18 @@ function page_landing(): void
     ];
 
     $routesList = [
-        ['/', 'Dashboard (or Landing Page for guests): monthly progress, quick navigation, continue working, pipeline breakdown, weekly goal, top posts'],
+        ['/', 'Dashboard (or Landing Page for guests): monthly progress rings, quick idea capture, continue working, pipeline breakdown, weekly goal day links, embedded analytics, top posts'],
         ['/welcome', 'Product overview, interactive feature showcase, architecture, quick start guide, and open-source license'],
         ['/changelog', 'Release notes & changelog parsed directly from CHANGELOG.md with category chips and security highlights'],
-        ['/content', 'Content Plan: List · Board (Kanban) · Calendar views; filter by status/platform/campaign; quick inline status cycling'],
-        ['/content/new, /content/{id}', 'Create or edit a content item (schedule, caption, hashtags, completion progress, performance metrics)'],
-        ['/campaigns, /campaigns/{id}', 'Campaigns list and campaign detail with performance summary & assigned posts'],
-        ['/ideas', 'Idea Bank: quick capture, priority/pillar tagging, one-click Turn into post conversion into content'],
-        ['/categories', 'Custom workspace categories: CRUD for Platforms, Formats, Content Pillars, and Pipeline Statuses'],
+        ['/content', 'Content Plan: List · Drag & Drop Board · Day/Week/Month Calendar views (view state saved); filter by status/platform/campaign, search, Order By (closest to now default)'],
+        ['/content/new, /content/{id}', 'Create or edit a content item (schedule, Markdown caption/script editor, hashtags, completion progress, performance metrics)'],
+        ['/campaigns, /campaigns/{id}', 'Campaigns list with search & status filters, and campaign detail with List · Board · Calendar views, filters, and performance summary'],
+        ['/ideas', 'Idea Bank: quick capture, inline Edit modal with Markdown notes, reactive status/pillar filters, pagination, and one-click Turn into post conversion'],
+        ['/categories', 'Custom Labels: CRUD for Platforms, Formats, Content Pillars, and Pipeline Statuses with custom colors, abbreviations & icons'],
         ['/resources', 'Caption templates, hashtag sets, links, and brand assets with one-click copy'],
         ['/analytics', 'KPIs vs. previous period, 8-week view trend, breakdown by platform/format/pillar, best publishing days, top posts'],
         ['/account', 'Profile & goals, theme switcher, version info, PWA install prompt, JSON backup, sample data reset, account deletion'],
-        ['/notes', 'Color-coded sticky notes with pinning; pinned/recent notes appear in the sidebar'],
+        ['/notes', 'Color-coded sticky notes with pinning; latest 3 notes appear in the sidebar with a detail modal'],
         ['/export', 'One-click TSV copy for Google Sheets, CSV downloads (content.csv, campaigns.csv, ideas.csv), full JSON backup'],
         ['/search?q=', 'Global search across content, campaigns, ideas, resources, and notes'],
     ];
@@ -364,15 +385,15 @@ function page_landing(): void
                     <div x-show="activeTab === 'views'" x-transition.opacity class="card p-5 sm:p-8">
                         <div class="grid grid-cols-1 items-center gap-6 lg:grid-cols-2">
                             <div>
-                                <span class="chip bg-sky-100 text-sky-700 dark:bg-sky-500/20 dark:text-sky-300">List · Kanban Board · Calendar</span>
+                                <span class="chip bg-sky-100 text-sky-700 dark:bg-sky-500/20 dark:text-sky-300">List · Drag &amp; Drop Board · Day/Week/Month Calendar</span>
                                 <h3 class="mt-3 text-xl font-extrabold sm:text-2xl">5-Stage Content Pipeline</h3>
                                 <p class="mt-2 text-sm leading-relaxed text-muted">
-                                    Every post flows cleanly through <b>Idea → Draft → Review → Scheduled → Published</b>. Filter by platform, campaign, or status with instant client-side search (<code>liveFilter</code>) and update status inline with a single tap.
+                                    Every post flows cleanly through <b>Idea → Draft → Review → Scheduled → Published</b>. Drag cards across columns, switch between Day/Week/Month calendar modes, sort by closest to now, and inspect or update posts in the Global Detail modal.
                                 </p>
                                 <ul class="mt-4 flex flex-col gap-2.5 text-xs font-semibold sm:text-sm">
-                                    <li class="flex items-center gap-2.5"><span class="grid size-6 shrink-0 place-items-center rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20"><?= icon('check', 'size-3.5') ?></span>Supported Platforms: Instagram, TikTok, Facebook, YouTube, LinkedIn, X</li>
-                                    <li class="flex items-center gap-2.5"><span class="grid size-6 shrink-0 place-items-center rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20"><?= icon('check', 'size-3.5') ?></span>Formats: Feed, Carousel, Reels, Story, Video, Thread</li>
-                                    <li class="flex items-center gap-2.5"><span class="grid size-6 shrink-0 place-items-center rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20"><?= icon('check', 'size-3.5') ?></span>Completion progress slider (0–100%), caption counter (2,200 chars), &amp; overdue alerts</li>
+                                    <li class="flex items-center gap-2.5"><span class="grid size-6 shrink-0 place-items-center rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20"><?= icon('check', 'size-3.5') ?></span>Custom Labels for Platforms, Formats, Pillars &amp; Statuses</li>
+                                    <li class="flex items-center gap-2.5"><span class="grid size-6 shrink-0 place-items-center rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20"><?= icon('check', 'size-3.5') ?></span>Markdown Caption/Script editor with live Write/Preview toggle</li>
+                                    <li class="flex items-center gap-2.5"><span class="grid size-6 shrink-0 place-items-center rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20"><?= icon('check', 'size-3.5') ?></span>Remembers your last view (List, Board, or Calendar) automatically</li>
                                 </ul>
                             </div>
                             <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -426,9 +447,9 @@ function page_landing(): void
                                     Never lose a content hook again. Save ideas tagged with content pillars (<b>Education, Inspiration, Promotion, Community, Behind the Scenes, Entertainment</b>) and convert them into scheduled content items in a single click.
                                 </p>
                                 <ul class="mt-4 flex flex-col gap-2.5 text-xs font-semibold sm:text-sm">
-                                    <li class="flex items-center gap-2.5"><span class="grid size-6 shrink-0 place-items-center rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20"><?= icon('check', 'size-3.5') ?></span>One-click <b>Turn into post</b> pre-fills title, pillar, and outline</li>
-                                    <li class="flex items-center gap-2.5"><span class="grid size-6 shrink-0 place-items-center rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20"><?= icon('check', 'size-3.5') ?></span>Color-coded Campaigns track progress %, views, and ER%</li>
-                                    <li class="flex items-center gap-2.5"><span class="grid size-6 shrink-0 place-items-center rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20"><?= icon('check', 'size-3.5') ?></span>Priority sorting (High, Medium, Low) &amp; bookmarking</li>
+                                    <li class="flex items-center gap-2.5"><span class="grid size-6 shrink-0 place-items-center rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20"><?= icon('check', 'size-3.5') ?></span>Inline Edit Idea modal with Markdown notes &amp; 1-click <b>Turn into post</b></li>
+                                    <li class="flex items-center gap-2.5"><span class="grid size-6 shrink-0 place-items-center rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20"><?= icon('check', 'size-3.5') ?></span>Campaigns include List, Board &amp; Calendar views with filters for assigned posts</li>
+                                    <li class="flex items-center gap-2.5"><span class="grid size-6 shrink-0 place-items-center rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20"><?= icon('check', 'size-3.5') ?></span>Priority sorting (High, Medium, Low), reactive filters &amp; pagination</li>
                                 </ul>
                             </div>
                             <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -865,7 +886,7 @@ config.example.php -> config.local.php</code></pre>
                                 <a href="<?= e($ghUrl) ?>" target="_blank" rel="noopener noreferrer" class="btn-dark">
                                     <?= icon('github', 'size-4.5') ?><span>Star &amp; Fork on GitHub</span>
                                 </a>
-                                <a href="<?= e($ghUrl . '/blob/main/LICENSE') ?>" target="_blank" rel="noopener noreferrer" class="btn-ghost">
+                                <a href="<?= e($ghUrl . '/blob/master/LICENSE') ?>" target="_blank" rel="noopener noreferrer" class="btn-ghost">
                                     <?= icon('file', 'size-4') ?><span>Read MIT License</span>
                                 </a>
                                 <?php if (!$user): ?>

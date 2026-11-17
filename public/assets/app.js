@@ -42,6 +42,22 @@
     const day = String(d.getDate()).padStart(2, '0');
     return `${y}-${m}-${day}`;
   };
+  const parseSchedMs = (s) => {
+    if (!s) return NaN;
+    const d = new Date(String(s).replace(' ', 'T'));
+    return Number.isNaN(d.getTime()) ? NaN : d.getTime();
+  };
+  const readSavedView = (key) => {
+    if (!key) return '';
+    try {
+      const v = localStorage.getItem(key);
+      return ['list', 'board', 'calendar'].includes(v) ? v : '';
+    } catch { return ''; }
+  };
+  const saveView = (key, v) => {
+    if (!key) return;
+    try { localStorage.setItem(key, v); } catch { /* private mode */ }
+  };
 
   /* ---------- Helper for AJAX POST requests ---------- */
   const postAjax = async (url, data, csrf) => {
@@ -282,313 +298,360 @@
     /* ----- Character counter for textareas ----- */
     A.data('counter', (n = 0, max = 0) => ({ n, max, get over() { return this.max > 0 && this.n > this.max; } }));
 
-    /* ----- Content Plan Manager (List pagination, Board drag & drop, Calendar Day/Week/Month + side column) ----- */
-    A.data('contentManager', (cfg) => ({
-      items: cfg.items || [],
-      statuses: cfg.statuses || [],
-      platforms: cfg.platforms || [],
-      campaigns: cfg.campaigns || [],
-      view: cfg.view || 'list',
-      status: cfg.status || '',
-      platform: cfg.platform || '',
-      campaign: String(cfg.campaign || '0'),
-      q: cfg.q || '',
-      page: Number(cfg.page || 1),
-      perPage: Number(cfg.perPage || 10),
-      calMode: cfg.calMode || 'month',
-      selectedDate: cfg.selectedDate || cfg.today || fmtYmd(new Date()),
-      today: cfg.today || fmtYmd(new Date()),
-      csrf: cfg.csrf || '',
-      baseUrl: cfg.baseUrl || '',
-      draggingId: null,
-      dragOverCol: null,
+    /* ----- Shared Content Workspace (List + Order By + Board drag & drop + Calendar Day/Week/Month) ----- */
+    const createContentWorkspace = (cfg, opts = {}) => {
+      const viewKey = opts.viewStorageKey || '';
+      const hasCampaignFilter = !!opts.hasCampaignFilter;
+      const savedView = !cfg.hasExplicitView ? readSavedView(viewKey) : '';
+      const initialView = cfg.hasExplicitView ? (cfg.view || 'list') : (savedView || cfg.view || 'list');
 
-      init() {
-        A.store('contentModal').onUpdate((updated) => {
-          const idx = this.items.findIndex((i) => Number(i.id) === Number(updated.id));
-          if (idx !== -1) this.items[idx] = { ...this.items[idx], ...updated };
-        });
-        addEventListener('popstate', () => {
+      return {
+        items: cfg.items || [],
+        statuses: cfg.statuses || [],
+        platforms: cfg.platforms || [],
+        campaigns: cfg.campaigns || [],
+        view: initialView,
+        status: cfg.status || '',
+        platform: cfg.platform || '',
+        campaign: hasCampaignFilter ? String(cfg.campaign || '') : '',
+        q: cfg.q || '',
+        sort: cfg.sort || 'closest',
+        page: Number(cfg.page || 1),
+        perPage: Number(cfg.perPage || 8),
+        calMode: cfg.calMode || 'month',
+        selectedDate: cfg.selectedDate || cfg.today || fmtYmd(new Date()),
+        today: cfg.today || fmtYmd(new Date()),
+        csrf: cfg.csrf || '',
+        baseUrl: cfg.baseUrl || '',
+        draggingId: null,
+        dragOverCol: null,
+
+        initWorkspace() {
+          A.store('contentModal').onUpdate((updated) => {
+            const idx = this.items.findIndex((i) => Number(i.id) === Number(updated.id));
+            if (idx !== -1) this.items[idx] = { ...this.items[idx], ...updated };
+          });
+          addEventListener('popstate', () => {
+            const u = new URL(location.href);
+            this.view = u.searchParams.get('view') || readSavedView(viewKey) || 'list';
+            this.status = u.searchParams.get('status') || '';
+            this.platform = u.searchParams.get('platform') || '';
+            if (hasCampaignFilter) this.campaign = u.searchParams.get('campaign') || '';
+            this.q = u.searchParams.get('q') || '';
+            this.sort = u.searchParams.get('sort') || 'closest';
+            this.page = Math.max(1, Number(u.searchParams.get('page') || 1));
+            this.calMode = u.searchParams.get('cal_mode') || 'month';
+            this.selectedDate = u.searchParams.get('date') || this.today;
+          });
+        },
+
+        syncUrl(push = false) {
           const u = new URL(location.href);
-          this.view = u.searchParams.get('view') || 'list';
-          this.status = u.searchParams.get('status') || '';
-          this.platform = u.searchParams.get('platform') || '';
-          this.campaign = u.searchParams.get('campaign') || '0';
-          this.q = u.searchParams.get('q') || '';
-          this.page = Math.max(1, Number(u.searchParams.get('page') || 1));
-          this.calMode = u.searchParams.get('cal_mode') || 'month';
-          this.selectedDate = u.searchParams.get('date') || this.today;
-        });
-      },
-
-      syncUrl(push = false) {
-        const u = new URL(location.href);
-        const setOrDel = (k, v, def = '') => {
-          if (v !== undefined && v !== null && String(v) !== String(def) && String(v) !== '') u.searchParams.set(k, String(v));
-          else u.searchParams.delete(k);
-        };
-        setOrDel('view', this.view, 'list');
-        setOrDel('status', this.status, '');
-        setOrDel('platform', this.platform, '');
-        setOrDel('campaign', this.campaign, '0');
-        setOrDel('q', this.q.trim(), '');
-        setOrDel('page', this.view === 'list' ? this.page : 1, 1);
-        if (this.view === 'calendar') {
-          setOrDel('cal_mode', this.calMode, 'month');
-          setOrDel('date', this.selectedDate, this.today);
-          u.searchParams.set('ym', this.selectedDate.slice(0, 7));
-        } else {
-          u.searchParams.delete('cal_mode');
-          u.searchParams.delete('date');
-          u.searchParams.delete('ym');
-        }
-        if (push) history.pushState({}, '', u);
-        else history.replaceState({}, '', u);
-      },
-
-      setView(v) {
-        this.view = v;
-        this.syncUrl(true);
-      },
-      setStatus(s) {
-        this.status = s;
-        this.page = 1;
-        this.syncUrl(true);
-      },
-      viewAllStatus(s) {
-        this.status = s;
-        this.page = 1;
-        this.view = 'list';
-        this.syncUrl(true);
-      },
-      onFilterChange() {
-        this.page = 1;
-        this.syncUrl(false);
-      },
-      setPage(p) {
-        const max = this.totalPages();
-        this.page = Math.min(Math.max(1, p), max);
-        this.syncUrl(true);
-      },
-
-      matchesBaseFilters(item) {
-        if (this.platform && item.platform !== this.platform) return false;
-        if (this.campaign && this.campaign !== '0' && String(item.campaign_id) !== String(this.campaign)) return false;
-        const q = (this.q || '').toLowerCase().trim();
-        if (q) {
-          const hay = `${item.title || ''} ${item.caption || ''} ${item.hashtags || ''} ${item.pillar || ''} ${item.format || ''} ${item.platform || ''} ${item.campaign_name || ''}`.toLowerCase();
-          if (!hay.includes(q)) return false;
-        }
-        return true;
-      },
-
-      filteredItems() {
-        return this.items.filter((item) => {
-          if (this.status === 'active') { if (item.status === 'published') return false; }
-          else if (this.status && item.status !== this.status) return false;
-          return this.matchesBaseFilters(item);
-        });
-      },
-
-      activeCount() {
-        return this.items.filter((item) => item.status !== 'published' && this.matchesBaseFilters(item)).length;
-      },
-
-      statusCount(statusKey) {
-        return this.items.filter((item) => item.status === statusKey && this.matchesBaseFilters(item)).length;
-      },
-
-      columnItems(statusKey) {
-        return this.items.filter((item) => item.status === statusKey && this.matchesBaseFilters(item));
-      },
-
-      totalPages() {
-        return Math.max(1, Math.ceil(this.filteredItems().length / this.perPage));
-      },
-
-      pagedItems() {
-        const list = this.filteredItems();
-        const max = Math.max(1, Math.ceil(list.length / this.perPage));
-        const cur = Math.min(Math.max(1, this.page), max);
-        const start = (cur - 1) * this.perPage;
-        return list.slice(start, start + this.perPage);
-      },
-
-      pageNumbers() {
-        return Array.from({ length: this.totalPages() }, (_, i) => i + 1);
-      },
-
-      statusMeta(key) {
-        return this.statuses.find((s) => s.key === key) || { key, label: key, chip: 'bg-soft text-muted', dot: 'bg-slate-400' };
-      },
-      statusChip(key) { return this.statusMeta(key).chip; },
-      statusDot(key) { return this.statusMeta(key).dot; },
-      statusLabel(key) { return this.statusMeta(key).label; },
-
-      itemUrl(id) {
-        return `${this.baseUrl}/content/${id}`;
-      },
-      newDateUrl(ymd) {
-        return `${this.baseUrl}/content/new?date=${encodeURIComponent(ymd || this.selectedDate)}`;
-      },
-      openDetail(item) {
-        A.store('contentModal').show(item);
-      },
-
-      /* --- Board Drag and Drop --- */
-      onDragStart(e, id) {
-        this.draggingId = Number(id);
-        if (e.dataTransfer) {
-          e.dataTransfer.effectAllowed = 'move';
-          e.dataTransfer.setData('text/plain', String(id));
-        }
-      },
-      onDragEnd() {
-        this.draggingId = null;
-        this.dragOverCol = null;
-      },
-      onDrop(statusKey) {
-        const id = this.draggingId;
-        this.draggingId = null;
-        this.dragOverCol = null;
-        if (!id) return;
-        const item = this.items.find((i) => Number(i.id) === Number(id));
-        if (item && item.status !== statusKey) {
-          this.changeStatus(item, statusKey);
-        }
-      },
-
-      /* --- Status & Delete Mutations --- */
-      async changeStatus(item, newStatus) {
-        const prev = item.status;
-        const meta = this.statusMeta(newStatus);
-        item.status = newStatus;
-        item.status_label = meta.label;
-        item.status_chip = meta.chip;
-        item.status_dot = meta.dot;
-        try {
-          const data = await postAjax(`${this.baseUrl}/content/${item.id}/status`, { status: newStatus }, this.csrf);
-          if (data.ok) {
-            if (data.item) Object.assign(item, data.item);
-            A.store('toast').push(data.msg || 'Status updated');
+          const setOrDel = (k, v, def = '') => {
+            if (v !== undefined && v !== null && String(v) !== String(def) && String(v) !== '') u.searchParams.set(k, String(v));
+            else u.searchParams.delete(k);
+          };
+          setOrDel('view', this.view, viewKey ? '' : 'list');
+          setOrDel('status', this.status, '');
+          setOrDel('platform', this.platform, '');
+          if (hasCampaignFilter) setOrDel('campaign', this.campaign, '');
+          setOrDel('q', this.q.trim(), '');
+          setOrDel('sort', this.sort, 'closest');
+          setOrDel('page', this.view === 'list' ? this.page : 1, 1);
+          if (this.view === 'calendar') {
+            setOrDel('cal_mode', this.calMode, 'month');
+            setOrDel('date', this.selectedDate, this.today);
+            u.searchParams.set('ym', this.selectedDate.slice(0, 7));
           } else {
-            item.status = prev;
-            A.store('toast').push(data.msg || 'Could not update status', 'err');
+            u.searchParams.delete('cal_mode');
+            u.searchParams.delete('date');
+            u.searchParams.delete('ym');
           }
-        } catch {
-          item.status = prev;
-          A.store('toast').push('Network error while updating status', 'err');
-        }
-      },
+          if (push) history.pushState({}, '', u);
+          else history.replaceState({}, '', u);
+        },
 
-      deleteItem(item) {
-        A.store('confirm').ask(`Delete content "${item.title}"?`, async () => {
+        setView(v) {
+          this.view = v;
+          saveView(viewKey, v);
+          this.syncUrl(true);
+        },
+        setStatus(s) {
+          this.status = s;
+          this.page = 1;
+          this.syncUrl(true);
+        },
+        viewAllStatus(s) {
+          this.status = s;
+          this.page = 1;
+          this.view = 'list';
+          saveView(viewKey, 'list');
+          this.syncUrl(true);
+        },
+        onFilterChange() {
+          this.page = 1;
+          this.syncUrl(false);
+        },
+        setPage(p) {
+          const max = this.totalPages();
+          this.page = Math.min(Math.max(1, p), max);
+          this.syncUrl(true);
+        },
+
+        matchesBaseFilters(item) {
+          if (this.platform && item.platform !== this.platform) return false;
+          if (hasCampaignFilter && this.campaign && this.campaign !== '0' && String(item.campaign_id) !== String(this.campaign)) return false;
+          const q = (this.q || '').toLowerCase().trim();
+          if (q) {
+            const hay = `${item.title || ''} ${item.caption || ''} ${item.hashtags || ''} ${item.pillar || ''} ${item.format || ''} ${item.platform || ''} ${item.campaign_name || ''}`.toLowerCase();
+            if (!hay.includes(q)) return false;
+          }
+          return true;
+        },
+
+        sortItems(list) {
+          const mode = this.sort || 'closest';
+          const now = Date.now();
+          return [...list].sort((a, b) => {
+            if (mode === 'title_asc') {
+              return String(a.title || '').localeCompare(String(b.title || '')) || (b.id - a.id);
+            }
+            if (mode === 'newest') return b.id - a.id;
+            if (mode === 'views_desc') {
+              const vd = (b.views || 0) - (a.views || 0);
+              if (vd !== 0) return vd;
+            }
+            const ta = parseSchedMs(a.scheduled_at);
+            const tb = parseSchedMs(b.scheduled_at);
+            const aHas = !Number.isNaN(ta);
+            const bHas = !Number.isNaN(tb);
+            if (!aHas && !bHas) return b.id - a.id;
+            if (!aHas) return 1;
+            if (!bHas) return -1;
+            if (mode === 'sched_asc') return (ta - tb) || (b.id - a.id);
+            if (mode === 'sched_desc') return (tb - ta) || (b.id - a.id);
+            const da = Math.abs(ta - now);
+            const db = Math.abs(tb - now);
+            if (da !== db) return da - db;
+            if ((ta >= now) !== (tb >= now)) return ta >= now ? -1 : 1;
+            return (ta - tb) || (b.id - a.id);
+          });
+        },
+
+        filteredItems() {
+          return this.sortItems(this.items.filter((item) => {
+            if (this.status === 'active') { if (item.status === 'published') return false; }
+            else if (this.status && item.status !== this.status) return false;
+            return this.matchesBaseFilters(item);
+          }));
+        },
+
+        activeCount() {
+          return this.items.filter((item) => item.status !== 'published' && this.matchesBaseFilters(item)).length;
+        },
+
+        statusCount(statusKey) {
+          return this.items.filter((item) => item.status === statusKey && this.matchesBaseFilters(item)).length;
+        },
+
+        columnItems(statusKey) {
+          return this.sortItems(this.items.filter((item) => item.status === statusKey && this.matchesBaseFilters(item)));
+        },
+
+        totalPages() {
+          return Math.max(1, Math.ceil(this.filteredItems().length / this.perPage));
+        },
+
+        pagedItems() {
+          const list = this.filteredItems();
+          const max = Math.max(1, Math.ceil(list.length / this.perPage));
+          const cur = Math.min(Math.max(1, this.page), max);
+          const start = (cur - 1) * this.perPage;
+          return list.slice(start, start + this.perPage);
+        },
+
+        pageNumbers() {
+          return Array.from({ length: this.totalPages() }, (_, i) => i + 1);
+        },
+
+        statusMeta(key) {
+          return this.statuses.find((s) => s.key === key) || { key, label: key, chip: 'bg-soft text-muted', dot: 'bg-slate-400' };
+        },
+        statusChip(key) { return this.statusMeta(key).chip; },
+        statusDot(key) { return this.statusMeta(key).dot; },
+        statusLabel(key) { return this.statusMeta(key).label; },
+
+        itemUrl(id) {
+          return `${this.baseUrl}/content/${id}`;
+        },
+        newDateUrl(ymd) {
+          return `${this.baseUrl}/content/new?date=${encodeURIComponent(ymd || this.selectedDate)}`;
+        },
+        openDetail(item) {
+          A.store('contentModal').show(item);
+        },
+
+        /* --- Board Drag and Drop --- */
+        onDragStart(e, id) {
+          this.draggingId = Number(id);
+          if (e.dataTransfer) {
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/plain', String(id));
+          }
+        },
+        onDragEnd() {
+          this.draggingId = null;
+          this.dragOverCol = null;
+        },
+        onDrop(statusKey) {
+          const id = this.draggingId;
+          this.draggingId = null;
+          this.dragOverCol = null;
+          if (!id) return;
+          const item = this.items.find((i) => Number(i.id) === Number(id));
+          if (item && item.status !== statusKey) {
+            this.changeStatus(item, statusKey);
+          }
+        },
+
+        /* --- Status & Delete Mutations --- */
+        async changeStatus(item, newStatus) {
+          const prev = item.status;
+          const meta = this.statusMeta(newStatus);
+          item.status = newStatus;
+          item.status_label = meta.label;
+          item.status_chip = meta.chip;
+          item.status_dot = meta.dot;
           try {
-            const data = await postAjax(`${this.baseUrl}/content/${item.id}/delete`, {}, this.csrf);
+            const data = await postAjax(`${this.baseUrl}/content/${item.id}/status`, { status: newStatus }, this.csrf);
             if (data.ok) {
-              this.items = this.items.filter((i) => Number(i.id) !== Number(item.id));
-              if (this.page > this.totalPages()) this.page = this.totalPages();
-              A.store('toast').push(data.msg || 'Content deleted', 'warn');
+              if (data.item) Object.assign(item, data.item);
+              A.store('toast').push(data.msg || 'Status updated');
             } else {
-              A.store('toast').push(data.msg || 'Could not delete content', 'err');
+              item.status = prev;
+              A.store('toast').push(data.msg || 'Could not update status', 'err');
             }
           } catch {
-            A.store('toast').push('Network error while deleting content', 'err');
+            item.status = prev;
+            A.store('toast').push('Network error while updating status', 'err');
           }
-        });
-      },
+        },
 
-      /* --- Calendar View (Day / Week / Month + Side Column) --- */
-      setCalMode(m) {
-        this.calMode = m;
-        this.syncUrl(true);
-      },
-      selectDate(ymd) {
-        this.selectedDate = ymd;
-        this.syncUrl(false);
-      },
-      calToday() {
-        this.selectedDate = this.today;
-        this.syncUrl(false);
-      },
-      calStep(dir) {
-        const d = parseYmd(this.selectedDate);
-        if (this.calMode === 'day') {
-          d.setDate(d.getDate() + dir);
-        } else if (this.calMode === 'week') {
-          d.setDate(d.getDate() + dir * 7);
-        } else {
-          d.setMonth(d.getMonth() + dir);
-        }
-        this.selectedDate = fmtYmd(d);
-        this.syncUrl(false);
-      },
-      itemsOnDate(ymd) {
-        return this.filteredItems().filter((i) => i.scheduled_date === ymd);
-      },
-      selectedDateItems() {
-        return this.itemsOnDate(this.selectedDate);
-      },
-      formatDateFull(ymd) {
-        const d = parseYmd(ymd);
-        return `${DAYS_LONG[d.getDay()]}, ${String(d.getDate()).padStart(2, '0')} ${MONTHS_SHORT[d.getMonth()]} ${d.getFullYear()}`;
-      },
-      calTitle() {
-        const d = parseYmd(this.selectedDate);
-        if (this.calMode === 'day') {
-          return `${DAYS_SHORT[d.getDay()]}, ${String(d.getDate()).padStart(2, '0')} ${MONTHS_SHORT[d.getMonth()]} ${d.getFullYear()}`;
-        }
-        if (this.calMode === 'week') {
-          const days = this.weekDays();
-          if (!days.length) return '';
-          const first = parseYmd(days[0].date);
-          const last = parseYmd(days[6].date);
-          return `${String(first.getDate()).padStart(2, '0')} ${MONTHS_SHORT[first.getMonth()]} – ${String(last.getDate()).padStart(2, '0')} ${MONTHS_SHORT[last.getMonth()]} ${last.getFullYear()}`;
-        }
-        return `${MONTHS_LONG[d.getMonth()]} ${d.getFullYear()}`;
-      },
-      weekDays() {
-        const d = parseYmd(this.selectedDate);
-        const dow = (d.getDay() + 6) % 7; // Monday = 0
-        const mon = new Date(d.getFullYear(), d.getMonth(), d.getDate() - dow);
-        const out = [];
-        for (let i = 0; i < 7; i++) {
-          const cur = new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() + i);
-          const ymd = fmtYmd(cur);
-          out.push({
-            date: ymd,
-            dow: DAYS_SHORT[cur.getDay()],
-            dayNum: cur.getDate(),
-            monthShort: MONTHS_SHORT[cur.getMonth()],
-            isToday: ymd === this.today,
-            items: this.itemsOnDate(ymd),
+        deleteItem(item) {
+          A.store('confirm').ask(`Delete content "${item.title}"?`, async () => {
+            try {
+              const data = await postAjax(`${this.baseUrl}/content/${item.id}/delete`, {}, this.csrf);
+              if (data.ok) {
+                this.items = this.items.filter((i) => Number(i.id) !== Number(item.id));
+                if (this.page > this.totalPages()) this.page = this.totalPages();
+                A.store('toast').push(data.msg || 'Content deleted', 'warn');
+              } else {
+                A.store('toast').push(data.msg || 'Could not delete content', 'err');
+              }
+            } catch {
+              A.store('toast').push('Network error while deleting content', 'err');
+            }
           });
-        }
-        return out;
-      },
-      monthCells() {
-        const d = parseYmd(this.selectedDate);
-        const year = d.getFullYear();
-        const month = d.getMonth();
-        const firstOfMonth = new Date(year, month, 1);
-        const startOffset = (firstOfMonth.getDay() + 6) % 7; // Monday = 0
-        const daysInMonth = new Date(year, month + 1, 0).getDate();
-        const totalCells = Math.ceil((startOffset + daysInMonth) / 7) * 7;
-        const cells = [];
-        for (let i = 0; i < totalCells; i++) {
-          const cur = new Date(year, month, 1 - startOffset + i);
-          const ymd = fmtYmd(cur);
-          cells.push({
-            key: ymd,
-            date: ymd,
-            day: cur.getDate(),
-            dayNum: cur.getDate(),
-            inMonth: cur.getMonth() === month,
-            isToday: ymd === this.today,
-            items: this.itemsOnDate(ymd),
-          });
-        }
-        return cells;
+        },
+
+        /* --- Calendar View (Day / Week / Month + Side Column) --- */
+        setCalMode(m) {
+          this.calMode = m;
+          this.syncUrl(true);
+        },
+        selectDate(ymd) {
+          this.selectedDate = ymd;
+          this.syncUrl(false);
+        },
+        calToday() {
+          this.selectedDate = this.today;
+          this.syncUrl(false);
+        },
+        calStep(dir) {
+          const d = parseYmd(this.selectedDate);
+          if (this.calMode === 'day') d.setDate(d.getDate() + dir);
+          else if (this.calMode === 'week') d.setDate(d.getDate() + dir * 7);
+          else d.setMonth(d.getMonth() + dir);
+          this.selectedDate = fmtYmd(d);
+          this.syncUrl(false);
+        },
+        itemsOnDate(ymd) {
+          return this.filteredItems()
+            .filter((i) => i.scheduled_date === ymd)
+            .sort((a, b) => (parseSchedMs(a.scheduled_at) || 0) - (parseSchedMs(b.scheduled_at) || 0) || (a.id - b.id));
+        },
+        selectedDateItems() {
+          return this.itemsOnDate(this.selectedDate);
+        },
+        formatDateFull(ymd) {
+          const d = parseYmd(ymd);
+          return `${DAYS_LONG[d.getDay()]}, ${String(d.getDate()).padStart(2, '0')} ${MONTHS_SHORT[d.getMonth()]} ${d.getFullYear()}`;
+        },
+        calTitle() {
+          const d = parseYmd(this.selectedDate);
+          if (this.calMode === 'day') {
+            return `${DAYS_SHORT[d.getDay()]}, ${String(d.getDate()).padStart(2, '0')} ${MONTHS_SHORT[d.getMonth()]} ${d.getFullYear()}`;
+          }
+          if (this.calMode === 'week') {
+            const days = this.weekDays();
+            if (!days.length) return '';
+            const first = parseYmd(days[0].date);
+            const last = parseYmd(days[6].date);
+            return `${String(first.getDate()).padStart(2, '0')} ${MONTHS_SHORT[first.getMonth()]} – ${String(last.getDate()).padStart(2, '0')} ${MONTHS_SHORT[last.getMonth()]} ${last.getFullYear()}`;
+          }
+          return `${MONTHS_LONG[d.getMonth()]} ${d.getFullYear()}`;
+        },
+        weekDays() {
+          const d = parseYmd(this.selectedDate);
+          const dow = (d.getDay() + 6) % 7;
+          const mon = new Date(d.getFullYear(), d.getMonth(), d.getDate() - dow);
+          const out = [];
+          for (let i = 0; i < 7; i++) {
+            const cur = new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() + i);
+            const ymd = fmtYmd(cur);
+            out.push({
+              date: ymd,
+              dow: DAYS_SHORT[cur.getDay()],
+              dayNum: cur.getDate(),
+              monthShort: MONTHS_SHORT[cur.getMonth()],
+              isToday: ymd === this.today,
+              items: this.itemsOnDate(ymd),
+            });
+          }
+          return out;
+        },
+        monthCells() {
+          const d = parseYmd(this.selectedDate);
+          const year = d.getFullYear();
+          const month = d.getMonth();
+          const firstOfMonth = new Date(year, month, 1);
+          const startOffset = (firstOfMonth.getDay() + 6) % 7;
+          const daysInMonth = new Date(year, month + 1, 0).getDate();
+          const totalCells = Math.ceil((startOffset + daysInMonth) / 7) * 7;
+          const cells = [];
+          for (let i = 0; i < totalCells; i++) {
+            const cur = new Date(year, month, 1 - startOffset + i);
+            const ymd = fmtYmd(cur);
+            cells.push({
+              key: ymd,
+              date: ymd,
+              day: cur.getDate(),
+              dayNum: cur.getDate(),
+              inMonth: cur.getMonth() === month,
+              isToday: ymd === this.today,
+              items: this.itemsOnDate(ymd),
+            });
+          }
+          return cells;
+        },
+      };
+    };
+
+    /* ----- Content Plan Manager ----- */
+    A.data('contentManager', (cfg) => ({
+      ...createContentWorkspace(cfg, { viewStorageKey: 'cp-content-view', hasCampaignFilter: true }),
+      init() {
+        this.initWorkspace();
       },
     }));
 
@@ -656,60 +719,25 @@
       },
     }));
 
-    /* ----- Campaign Detail Manager (Inline campaign status + paginated content) ----- */
+    /* ----- Campaign Detail Manager (Inline campaign status + List/Board/Calendar + Filters) ----- */
     A.data('campaignDetail', (cfg) => ({
+      ...createContentWorkspace(cfg, { hasCampaignFilter: false }),
       campaignId: cfg.campaignId,
       campaignStatus: cfg.campaignStatus || 'active',
       campaignStatuses: cfg.campaignStatuses || [],
-      statuses: cfg.statuses || [],
-      items: cfg.items || [],
-      page: Number(cfg.page || 1),
-      perPage: Number(cfg.perPage || 5),
-      csrf: cfg.csrf || '',
-      baseUrl: cfg.baseUrl || '',
 
       init() {
-        A.store('contentModal').onUpdate((updated) => {
-          const idx = this.items.findIndex((i) => Number(i.id) === Number(updated.id));
-          if (idx !== -1) this.items[idx] = { ...this.items[idx], ...updated };
-        });
-        window.addEventListener('popstate', () => {
-          const p = new URLSearchParams(location.search);
-          this.page = Math.max(1, Number(p.get('page') || 1));
-        });
+        this.initWorkspace();
       },
       campaignStatusChip(k) {
         const found = this.campaignStatuses.find((s) => s.key === k);
         return found ? found.chip : 'bg-soft text-muted';
       },
-      statusMeta(k) {
-        return this.statuses.find((s) => s.key === k) || { key: k, label: k, chip: 'bg-soft text-muted', dot: 'bg-slate-400' };
-      },
-      statusChip(k) { return this.statusMeta(k).chip; },
       publishedCount() {
         return this.items.filter((i) => i.status === 'published').length;
       },
-      totalPages() {
-        return Math.max(1, Math.ceil(this.items.length / this.perPage));
-      },
-      pagedItems() {
-        const max = this.totalPages();
-        const cur = Math.min(Math.max(1, this.page), max);
-        const start = (cur - 1) * this.perPage;
-        return this.items.slice(start, start + this.perPage);
-      },
-      pageNumbers() {
-        return Array.from({ length: this.totalPages() }, (_, i) => i + 1);
-      },
-      setPage(p) {
-        this.page = Math.min(Math.max(1, p), this.totalPages());
-        const u = new URL(location.href);
-        if (this.page > 1) u.searchParams.set('page', String(this.page));
-        else u.searchParams.delete('page');
-        history.pushState({}, '', u);
-      },
-      openDetail(item) {
-        A.store('contentModal').show(item);
+      newDateUrl(ymd) {
+        return `${this.baseUrl}/content/new?campaign=${encodeURIComponent(this.campaignId)}&date=${encodeURIComponent(ymd || this.selectedDate)}`;
       },
       async updateCampaignStatus(newStatus) {
         this.campaignStatus = newStatus;
@@ -720,41 +748,6 @@
         } catch {
           A.store('toast').push('Network error', 'err');
         }
-      },
-      async changeContentStatus(item, newStatus) {
-        const prev = item.status;
-        const meta = this.statusMeta(newStatus);
-        item.status = newStatus;
-        item.status_label = meta.label;
-        item.status_chip = meta.chip;
-        item.status_dot = meta.dot;
-        try {
-          const data = await postAjax(`${this.baseUrl}/content/${item.id}/status`, { status: newStatus }, this.csrf);
-          if (data.ok) {
-            if (data.item) Object.assign(item, data.item);
-            A.store('toast').push(data.msg || 'Status updated');
-          } else {
-            item.status = prev;
-            A.store('toast').push(data.msg || 'Could not update status', 'err');
-          }
-        } catch {
-          item.status = prev;
-          A.store('toast').push('Network error', 'err');
-        }
-      },
-      deleteContentItem(item) {
-        A.store('confirm').ask(`Delete content "${item.title}"?`, async () => {
-          try {
-            const data = await postAjax(`${this.baseUrl}/content/${item.id}/delete`, {}, this.csrf);
-            if (data.ok) {
-              this.items = this.items.filter((i) => Number(i.id) !== Number(item.id));
-              if (this.page > this.totalPages()) this.page = this.totalPages();
-              A.store('toast').push(data.msg || 'Content deleted', 'warn');
-            }
-          } catch {
-            A.store('toast').push('Network error', 'err');
-          }
-        });
       },
     }));
 

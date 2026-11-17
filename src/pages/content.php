@@ -69,29 +69,11 @@ function content_row(array $c, string $back, bool $live = false): string
     <?php return (string) ob_get_clean();
 }
 
-function page_contents(): void
+function content_statuses_meta(): array
 {
-    $rawView = input('view') ?: input('v');
-    $view = in_array($rawView, ['board', 'calendar'], true) ? $rawView : 'list';
-    $status = input('status');
-    $platform = input('platform');
-    $camp = input('campaign');
-    $search = input('q');
-    $pageNum = max(1, (int) input('page', '1'));
-    $rawCal = input('cal_mode') ?: input('cal');
-    $calMode = in_array($rawCal, ['day', 'week', 'month'], true) ? $rawCal : 'month';
-    $selectedDate = preg_match('/^\d{4}-\d{2}-\d{2}$/', input('date')) ? input('date') : date('Y-m-d');
-    $rawYm = input('ym') ?: input('m');
-    if (preg_match('/^\d{4}-\d{2}$/', $rawYm) && !preg_match('/^\d{4}-\d{2}-\d{2}$/', input('date')) && $rawYm !== date('Y-m')) {
-        $selectedDate = $rawYm . '-01';
-    }
-
-    $rows = q('SELECT c.*, ca.name AS campaign_name FROM contents c LEFT JOIN campaigns ca ON ca.id=c.campaign_id ORDER BY (c.scheduled_at IS NULL), c.scheduled_at DESC, c.id DESC');
-    $items = array_map('content_payload', $rows);
-
-    $allStatuses = [];
+    $out = [];
     foreach (statuses() as $k => $m) {
-        $allStatuses[] = [
+        $out[] = [
             'key'   => (string) $k,
             'label' => (string) $m['label'],
             'chip'  => (string) $m['chip'],
@@ -100,33 +82,52 @@ function page_contents(): void
             'icon'  => (string) ($m['icon'] ?? 'bulb'),
         ];
     }
-    $allPlatforms = array_keys(platforms());
-    $allCampaigns = [];
-    foreach (campaign_options(false) as $cid => $cname) {
-        $allCampaigns[] = ['id' => (int) $cid, 'name' => (string) $cname];
+    return $out;
+}
+
+function content_workspace_state(int $perPage = 8): array
+{
+    $rawView = input('view') ?: input('v');
+    $hasExplicitView = in_array($rawView, ['list', 'board', 'calendar'], true);
+    $view = $hasExplicitView ? $rawView : 'list';
+    $rawCal = input('cal_mode') ?: input('cal');
+    $calMode = in_array($rawCal, ['day', 'week', 'month'], true) ? $rawCal : 'month';
+    $selectedDate = preg_match('/^\d{4}-\d{2}-\d{2}$/', input('date')) ? input('date') : date('Y-m-d');
+    $rawYm = input('ym') ?: input('m');
+    if (preg_match('/^\d{4}-\d{2}$/', $rawYm) && !preg_match('/^\d{4}-\d{2}-\d{2}$/', input('date')) && $rawYm !== date('Y-m')) {
+        $selectedDate = $rawYm . '-01';
     }
+    $validSorts = ['closest', 'sched_asc', 'sched_desc', 'newest', 'title_asc', 'views_desc'];
+    $sort = in_array(input('sort'), $validSorts, true) ? input('sort') : 'closest';
 
-    $config = [
-        'items'        => $items,
-        'statuses'     => $allStatuses,
-        'platforms'    => $allPlatforms,
-        'campaigns'    => $allCampaigns,
-        'view'         => $view,
-        'status'       => $status,
-        'platform'     => $platform,
-        'campaign'     => $camp !== '' ? (string) (int) $camp : '',
-        'q'            => $search,
-        'page'         => $pageNum,
-        'perPage'      => 8,
-        'calMode'      => $calMode,
-        'selectedDate' => $selectedDate,
-        'today'        => date('Y-m-d'),
-        'csrf'         => csrf_token(),
-        'baseUrl'      => url(''),
+    return [
+        'statuses'        => content_statuses_meta(),
+        'platforms'       => array_keys(platforms()),
+        'view'            => $view,
+        'hasExplicitView' => $hasExplicitView,
+        'status'          => input('status'),
+        'platform'        => input('platform'),
+        'q'               => input('q'),
+        'sort'            => $sort,
+        'page'            => max(1, (int) input('page', '1')),
+        'perPage'         => $perPage,
+        'calMode'         => $calMode,
+        'selectedDate'    => $selectedDate,
+        'today'           => date('Y-m-d'),
+        'csrf'            => csrf_token(),
+        'baseUrl'         => url(''),
     ];
+}
 
-    ob_start(); ?>
-    <div x-data="contentManager(<?= e(json_encode($config, JSON_UNESCAPED_UNICODE)) ?>)">
+function render_content_workspace(array $opts): void
+{
+    $view = $opts['view'] ?? 'list';
+    $showCampaignFilter = !empty($opts['showCampaignFilter']);
+    $showLabelsLink = !empty($opts['showLabelsLink']);
+    $newUrl = $opts['newUrl'] ?? url('/content/new');
+    $newLabel = $opts['newLabel'] ?? 'New content';
+    $emptyText = $opts['emptyText'] ?? 'Start building your content calendar from a simple idea.';
+    ?>
         <!-- Toolbar -->
         <div class="mb-4 flex flex-col gap-3">
             <div class="flex flex-wrap items-center gap-2">
@@ -142,8 +143,10 @@ function page_contents(): void
                         :class="view === 'calendar' ? 'bg-hero text-white' : 'text-muted hover:text-ink'"><?= icon('calendar', 'size-4') ?>Calendar</button>
                 </div>
                 <div class="ml-auto flex items-center gap-2">
-                    <a href="<?= e(url('/categories')) ?>" class="btn-soft hidden !px-3.5 !py-2 !text-xs sm:inline-flex" title="Manage Platform, Format, Pillar & Status"><?= icon('tag', 'size-4') ?>Labels</a>
-                    <a href="<?= e(url('/content/new')) ?>" class="btn-primary hidden sm:inline-flex"><?= icon('plus', 'size-4') ?>New content</a>
+                    <?php if ($showLabelsLink): ?>
+                        <a href="<?= e(url('/categories')) ?>" class="btn-soft hidden !px-3.5 !py-2 !text-xs sm:inline-flex" title="Manage Platform, Format, Pillar & Status"><?= icon('tag', 'size-4') ?>Labels</a>
+                    <?php endif; ?>
+                    <a href="<?= e($newUrl) ?>" class="btn-primary hidden sm:inline-flex"><?= icon('plus', 'size-4') ?><?= e($newLabel) ?></a>
                 </div>
             </div>
 
@@ -160,11 +163,21 @@ function page_contents(): void
                         <option :value="p" x-text="p"></option>
                     </template>
                 </select>
+                <?php if ($showCampaignFilter): ?>
                 <select x-model="campaign" @change="onFilterChange()" class="input sm:!w-auto sm:max-w-52" aria-label="Campaign">
                     <option value="">All campaigns</option>
                     <template x-for="ca in campaigns" :key="ca.id">
                         <option :value="String(ca.id)" x-text="ca.name"></option>
                     </template>
+                </select>
+                <?php endif; ?>
+                <select x-model="sort" @change="onFilterChange()" class="input <?= $showCampaignFilter ? 'col-span-2 ' : '' ?>sm:!w-auto" aria-label="Order by">
+                    <option value="closest">Closest to now</option>
+                    <option value="sched_asc">Earliest schedule</option>
+                    <option value="sched_desc">Latest schedule</option>
+                    <option value="newest">Recently added</option>
+                    <option value="title_asc">Title (A-Z)</option>
+                    <option value="views_desc">Most views</option>
                 </select>
             </div>
 
@@ -192,8 +205,8 @@ function page_contents(): void
                 <div class="card grid place-items-center gap-2 px-6 py-12 text-center">
                     <div class="grid size-14 place-items-center rounded-2xl bg-soft text-brand"><?= icon('calendar', 'size-7') ?></div>
                     <h3 class="text-base font-extrabold">No content found</h3>
-                    <p class="max-w-sm text-sm text-muted" x-text="(q || status || platform || campaign) ? 'No content matches the active filters.' : 'Start building your content calendar from a simple idea.'"></p>
-                    <a href="<?= e(url('/content/new')) ?>" class="btn-primary mt-2"><?= icon('plus', 'size-4') ?>New content</a>
+                    <p class="max-w-sm text-sm text-muted" x-text="(q || status || platform<?= $showCampaignFilter ? ' || campaign' : '' ?>) ? 'No content matches the active filters.' : <?= e(json_encode($emptyText)) ?>"></p>
+                    <a href="<?= e($newUrl) ?>" class="btn-primary mt-2"><?= icon('plus', 'size-4') ?><?= e($newLabel) ?></a>
                 </div>
             </template>
 
@@ -526,6 +539,34 @@ function page_contents(): void
                 </aside>
             </div>
         </div>
+    <?php
+}
+
+function page_contents(): void
+{
+    $rows = q('SELECT c.*, ca.name AS campaign_name FROM contents c LEFT JOIN campaigns ca ON ca.id=c.campaign_id ORDER BY (c.scheduled_at IS NULL), c.scheduled_at DESC, c.id DESC');
+    $allCampaigns = [];
+    foreach (campaign_options(false) as $cid => $cname) {
+        $allCampaigns[] = ['id' => (int) $cid, 'name' => (string) $cname];
+    }
+    $camp = input('campaign');
+
+    $config = content_workspace_state(8) + [
+        'items'     => array_map('content_payload', $rows),
+        'campaigns' => $allCampaigns,
+        'campaign'  => $camp !== '' ? (string) (int) $camp : '',
+    ];
+
+    ob_start(); ?>
+    <div x-data="contentManager(<?= e(json_encode($config, JSON_UNESCAPED_UNICODE)) ?>)">
+        <?php render_content_workspace([
+            'view'               => $config['view'],
+            'showCampaignFilter' => true,
+            'showLabelsLink'     => true,
+            'newUrl'             => url('/content/new'),
+            'newLabel'           => 'New content',
+            'emptyText'          => 'Start building your content calendar from a simple idea.',
+        ]); ?>
     </div>
     <?php
     page('Content', 'content', (string) ob_get_clean(), ['subtitle' => 'Content calendar & pipeline']);

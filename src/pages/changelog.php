@@ -95,7 +95,7 @@ function page_changelog(): void
             </div>
         </header>
 
-        <main id="main" class="mx-auto max-w-4xl px-4 pb-14 pt-8 sm:px-6 sm:pt-12">
+        <main id="main" class="mx-auto max-w-4xl px-4 pb-14 pt-8 sm:px-6 py-10 sm:py-12">
             <!-- ============ Header Hero ============ -->
             <div class="text-center">
                 <div class="inline-flex flex-wrap items-center justify-center gap-2 rounded-full border border-line bg-surface/90 px-3.5 py-1.5 text-xs font-bold shadow-sm">

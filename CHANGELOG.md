@@ -6,6 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-11-17
+
+### Added
+- **Campaign Content Views & Filters**: Added **List**, drag-and-drop **Board**, and **Day / Week / Month Calendar** views with search, **Platform**, **Status**, and **Order By** filters inside the Campaign detail page (`/campaigns/{id}`).
+- **Content Order By**: Added an **Order by** selector on `/content` and Campaign detail views (`Closest to now` by default, plus `Earliest schedule`, `Latest schedule`, `Recently added`, `Title (A–Z)`, and `Most views`).
+- **Saved Content View State**: Persisted the last selected `/content` view (`list`, `board`, or `calendar`) in `localStorage` (`cp-content-view`) while keeping explicit `?view=` URL links working.
+
+### Changed
+- **Welcome Page (`/welcome`)**: Updated the feature grid (12 cards), interactive workflow preview tabs, and application routes table to reflect all current features (drag-and-drop Kanban, Day/Week/Month calendar, Order By, saved view state, Custom Labels, Markdown editor & safe preview, Campaign views, and inline Idea editing).
+- Refactored the Content and Campaign detail workspaces to share `render_content_workspace()` / `content_workspace_state()` in PHP and `createContentWorkspace()` in `public/assets/app.js`.
+
+### Fixed
+- Updated the GitHub `LICENSE` link on the Welcome page from `/blob/main/LICENSE` to `/blob/master/LICENSE` to match the repository's `master` default branch.
+
 ## [1.3.0] - 2026-11-16
 
 ### Added

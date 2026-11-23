@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Offline · Content Planner</title>
+<meta name="robots" content="noindex">
 <meta name="theme-color" content="#2160d6">
 <style>
   :root { color-scheme: light dark; --bg:#e6eefc; --card:#fff; --ink:#0e1d3b; --muted:#5b6a86; --brand:#2563eb; }
@@ -23,9 +24,12 @@
   <div class="ic" aria-hidden="true">
     <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8.8a15 15 0 0 1 20 0M5 12.5a10 10 0 0 1 14 0M8.5 16a5 5 0 0 1 7 0M12 20h.01M3 3l18 18"/></svg>
   </div>
-  <h1>You are offline</h1>
-  <p>This page has not been cached on your device yet. Please reconnect to the internet and try again. Previously visited pages remain available offline.</p>
+  <h1>Server or device offline</h1>
+  <p>The Content Planner server can't be reached right now (for example a power or network outage), or your device has no connection.
+     This page hasn't been saved on this device yet. Pages you've opened before still work offline, and changes you make there are
+     stored securely on this device and synced automatically once the server is back.</p>
   <button onclick="location.reload()">Try again</button>
+  <p style="margin:1rem 0 0"><a href="./" style="color:var(--brand);font-weight:700;font-size:.85rem">Open Dashboard</a></p>
 </main>
 </body>
 </html>

@@ -14,15 +14,39 @@
   addEventListener('beforeinstallprompt', (e) => { deferredInstall = e; installListeners.forEach((f) => f()); });
   addEventListener('appinstalled', () => { deferredInstall = null; installListeners.forEach((f) => f()); });
 
-  /* ---------- Clear cached pages on logout so private data is never left behind ---------- */
+  /* ---------- Service Worker messaging (offline outbox lives in the SW, encrypted in IndexedDB) ---------- */
+  const swSupported = 'serviceWorker' in navigator && (location.protocol === 'https:' || ['localhost', '127.0.0.1'].includes(location.hostname));
+  const swCall = (msg, timeout = 4000) => new Promise((resolve) => {
+    if (!swSupported) { resolve(null); return; }
+    const timer = setTimeout(() => resolve(null), timeout);
+    navigator.serviceWorker.ready.then((reg) => {
+      if (!reg.active) { clearTimeout(timer); resolve(null); return; }
+      const ch = new MessageChannel();
+      ch.port1.onmessage = (ev) => { clearTimeout(timer); resolve(ev.data); };
+      reg.active.postMessage(msg, [ch.port2]);
+    }).catch(() => { clearTimeout(timer); resolve(null); });
+  });
+
+  /* ---------- Logout: wipe cached pages + unsynced offline changes so private data is never left behind ---------- */
   window.cpLogout = async (form) => {
-    try {
-      if ('caches' in window) {
-        const keys = await caches.keys();
-        await Promise.all(keys.filter((k) => k.endsWith('-pages')).map((k) => caches.delete(k)));
-      }
-    } catch { /* ignore */ }
-    form.submit();
+    const wipe = async () => {
+      await swCall({ type: 'cp-logout' }, 2500);
+      try {
+        if ('caches' in window) {
+          const keys = await caches.keys();
+          await Promise.all(keys.filter((k) => k.endsWith('-pages')).map((k) => caches.delete(k)));
+        }
+      } catch { /* ignore */ }
+      form.submit();
+    };
+    const st = await swCall({ type: 'cp-state' }, 1500);
+    const n = st ? (st.pending || 0) + (st.failed || 0) : 0;
+    const confirmStore = window.Alpine && window.Alpine.store('confirm');
+    if (n > 0 && confirmStore) {
+      confirmStore.ask(`You have ${n} unsynced change${n > 1 ? 's' : ''} saved on this device. Logging out will permanently delete ${n > 1 ? 'them' : 'it'}. Continue?`, wipe);
+      return;
+    }
+    wipe();
   };
 
   /* ---------- Date helpers ---------- */
@@ -60,17 +84,26 @@
   };
 
   /* ---------- Helper for AJAX POST requests ---------- */
+  /* Uses the freshest CSRF token known (pages served from the offline cache may embed an older one). */
+  const netFail = () => { try { window.Alpine && window.Alpine.store('net') && window.Alpine.store('net').fail(); } catch { /* ignore */ } };
   const postAjax = async (url, data, csrf) => {
+    const token = window.cpCsrf || csrf || '';
     const fd = new FormData();
-    fd.append('_csrf', csrf || '');
+    fd.append('_csrf', token);
     fd.append('_ajax', '1');
     Object.entries(data || {}).forEach(([k, v]) => fd.append(k, v ?? ''));
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-CSRF-Token': csrf || '' },
-      body: fd,
-    });
-    return res.json();
+    let res;
+    try {
+      res = await fetch(url, {
+        method: 'POST',
+        headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-CSRF-Token': token },
+        body: fd,
+      });
+    } catch (err) { netFail(); throw err; }
+    let json;
+    try { json = await res.json(); } catch (err) { if (res.status >= 500) netFail(); throw err; }
+    if (json && (json.queued || json.offline)) netFail();
+    return json;
   };
 
   document.addEventListener('alpine:init', () => {
@@ -243,6 +276,162 @@
         }
       },
     });
+
+    /* ----- Offline / server-down status + outbox sync (see public/sw.js) ----- */
+    const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
+    A.store('net', {
+      online: navigator.onLine,
+      server: true,
+      checking: false,
+      pending: 0,
+      failed: 0,
+      syncing: false,
+      needsLogin: false,
+      synced: 0,
+      open: false,
+      items: [],
+      get offline() { return !this.online || !this.server; },
+      get tone() {
+        if (this.offline) return 'off';
+        if (this.needsLogin && this.pending) return 'warn';
+        if (this.syncing || this.pending) return 'sync';
+        if (this.failed) return 'warn';
+        if (this.synced) return 'ok';
+        return '';
+      },
+      get visible() { return this.tone !== ''; },
+      get title() {
+        switch (this.tone) {
+          case 'off': return this.online ? 'Server is offline.' : 'Your device is offline.';
+          case 'warn': return this.needsLogin ? 'Sign in again to sync.' : `${plural(this.failed, 'change')} could not be synced.`;
+          case 'sync': return this.syncing ? 'Back online — syncing…' : `${plural(this.pending, 'change')} waiting to sync.`;
+          case 'ok': return `All changes synced (${this.synced}).`;
+          default: return '';
+        }
+      },
+      get detail() {
+        switch (this.tone) {
+          case 'off': return 'Your changes are saved securely on this device and will be synced automatically when the connection is back.';
+          case 'warn': return this.needsLogin ? 'Your session has expired. Unsynced changes are kept safely on this device.' : 'Open Details to retry or discard them.';
+          case 'sync': return 'Sending changes saved on this device to the server.';
+          case 'ok': return 'Reload to see the latest data.';
+          default: return '';
+        }
+      },
+      loginUrl() { return `${document.body?.dataset.base || base}/login`; },
+      ago(ts) {
+        const s = Math.max(0, Math.round((Date.now() - ts) / 1000));
+        if (s < 60) return 'just now';
+        if (s < 3600) return `${Math.round(s / 60)} min ago`;
+        if (s < 86400) return `${Math.round(s / 3600)} h ago`;
+        return new Date(ts).toLocaleString();
+      },
+      apply(d) {
+        if (!d) return;
+        if (typeof d.pending === 'number') this.pending = d.pending;
+        if (typeof d.failed === 'number') this.failed = d.failed;
+        if (typeof d.syncing === 'boolean') this.syncing = d.syncing;
+        if (typeof d.needsLogin === 'boolean') this.needsLogin = d.needsLogin;
+        if (d.server === false) this.server = false;
+        if (d.server === true) this.server = true;
+        if (d.synced) {
+          this.synced += d.synced;
+          A.store('toast').push(`${plural(d.synced, 'offline change')} synced to the server`);
+          clearTimeout(this._okTimer);
+          this._okTimer = setTimeout(() => { this.synced = 0; }, 10000);
+        }
+        if (this.open) this.refreshList();
+      },
+      fail() {
+        this.server = false;
+        clearTimeout(this._failTimer);
+        this._failTimer = setTimeout(() => this.check(), 4000);
+      },
+      /** Health check against /api/session (also refreshes the CSRF token and account identity). */
+      async check(manual = false) {
+        if (this.checking) return null;
+        this.online = navigator.onLine;
+        this.checking = true;
+        const ctl = new AbortController();
+        const timer = setTimeout(() => ctl.abort(), 6000);
+        let d = null;
+        try {
+          const res = await fetch(`${document.body?.dataset.base || base}/api/session`, {
+            cache: 'no-store', credentials: 'same-origin', headers: { Accept: 'application/json' }, signal: ctl.signal,
+          });
+          if (!res.ok || !(res.headers.get('content-type') || '').includes('application/json')) throw new Error('down');
+          d = await res.json();
+        } catch { d = null; } finally { clearTimeout(timer); this.checking = false; }
+
+        const wasDown = !this.server;
+        this.server = !!d;
+        if (d) {
+          this.online = true;
+          if (d.csrf) window.cpCsrf = d.csrf;
+          if (d.uid) swCall({ type: 'cp-identity', uid: d.uid }).then((st) => this.apply(st));
+          this.needsLogin = !d.auth && !!document.body?.dataset.uid;
+          if ((wasDown || manual || this.pending) && !this.needsLogin) this.sync();
+        } else if (manual) {
+          A.store('toast').push('Still offline. Your changes stay saved on this device.', 'err');
+        }
+        return d;
+      },
+      sync() {
+        if (this.offline || this.syncing) return;
+        swCall({ type: 'cp-sync' }, 120000).then((r) => {
+          if (r && r.offline) this.server = false;
+          if (r && r.needsLogin) this.needsLogin = true;
+        });
+      },
+      async toggle() {
+        this.open = !this.open;
+        if (this.open) await this.refreshList();
+      },
+      async refreshList() {
+        const r = await swCall({ type: 'cp-list' });
+        this.items = (r && r.items) || [];
+      },
+      discard(it) {
+        A.store('confirm').ask(`Discard “${it.label}”? This change will be lost.`, async () => {
+          await swCall({ type: 'cp-discard', id: it.id });
+          await this.refreshList();
+        });
+      },
+      async retry(id) {
+        if (this.offline) { this.check(true); return; }
+        await swCall({ type: 'cp-retry', id });
+        await this.refreshList();
+      },
+    });
+
+    if (swSupported) {
+      navigator.serviceWorker.addEventListener('message', (ev) => {
+        if (ev.data && ev.data.type === 'cp-queue') A.store('net').apply(ev.data);
+      });
+    }
+    const net = A.store('net');
+    addEventListener('online', () => { net.online = true; net.check(); });
+    addEventListener('offline', () => { net.online = false; });
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') net.check(); });
+    // While offline (or with unsynced changes), probe the server periodically to detect recovery quickly.
+    setInterval(() => { if (document.visibilityState === 'visible' && (net.offline || net.pending) && !net.syncing) net.check(); }, 15000);
+
+    const uid = document.body?.dataset.uid || '';
+    swCall(uid ? { type: 'cp-identity', uid } : { type: 'cp-state' }).then((st) => net.apply(st));
+    net.check().then((d) => {
+      // Pre-cache the main pages once in a while so they open even when the home server is down.
+      if (!d || !d.auth || !uid || !swSupported) return;
+      const k = `cp-warm-at:${uid}`;
+      let last = 0;
+      try { last = Number(localStorage.getItem(k) || 0); } catch { /* private mode */ }
+      if (Date.now() - last < 6 * 3600 * 1000) return;
+      try { localStorage.setItem(k, String(Date.now())); } catch { /* private mode */ }
+      swCall({ type: 'cp-warm', paths: ['/', '/content', '/content/new', '/campaigns', '/campaigns/new', '/ideas', '/notes', '/categories', '/resources', '/resources/new', '/analytics'] }, 120000);
+    });
+    if (location.hash === '#cp-queued') {
+      history.replaceState(history.state, '', location.pathname + location.search);
+      setTimeout(() => A.store('toast').push('Saved offline on this device. It will sync automatically when the server is back.', 'ok', 6000), 300);
+    }
 
     /* -----PWA installation ----- */
     A.store('pwa', {
@@ -851,6 +1040,15 @@
             this.items.unshift(data.item);
             this.newTitle = '';
             A.store('toast').push(data.msg || 'Idea added to bank!');
+          } else if (data.ok && data.queued) {
+            // Saved offline: show a temporary card until the change is synced and the page is reloaded
+            const pr = (this.priorities || []).find((p) => (p.key || p) === this.newPriority);
+            this.items.unshift({
+              id: `tmp-${Date.now()}`, title: this.newTitle.trim(), notes: '', pillar: this.newPillar, priority: this.newPriority,
+              priority_lbl: (pr && (pr.label || pr)) || this.newPriority, priority_cls: '', status: 'new', _pending: true,
+            });
+            this.newTitle = '';
+            A.store('toast').push(data.msg);
           } else {
             A.store('toast').push(data.msg || 'Could not add idea', 'err');
           }

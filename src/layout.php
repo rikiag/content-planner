@@ -83,6 +83,10 @@ function layout_head(string $title): void
                     if (!A.store('changelog')) {
                         A.store('changelog', { current: '', seen: '', hasNew: false, markSeen: function() {} });
                     }
+                    if (!A.store('net')) {
+                        A.store('net', { visible: false, tone: '', title: '', detail: '', pending: 0, failed: 0, offline: false, needsLogin: false, checking: false, open: false, items: [],
+                            check: function() {}, toggle: function() {}, retry: function() {}, discard: function() {}, ago: function() { return ''; }, loginUrl: function() { return ''; } });
+                    }
                     if (!A.store('contentModal')) {
                         A.store('contentModal', {
                             open: false, item: null, csrf: '', baseUrl: '', statuses: [],
@@ -110,6 +114,42 @@ function layout_head(string $title): void
 function layout_overlays(array $flashes): void
 {
 ?>
+    <!-- Offline / sync status bar (server down, e.g. Cloudflare Error 1033, or device offline) -->
+    <div x-data x-cloak x-show="$store.net.visible" x-effect="document.body.classList.toggle('has-net-bar', $store.net.visible)" x-transition.opacity class="net-bar" :class="'net-' + $store.net.tone"
+        role="status" aria-live="polite" @keydown.escape.window="$store.net.open = false">
+        <div class="net-bar-row">
+            <span class="net-dot" aria-hidden="true"></span>
+            <p class="net-msg">
+                <b x-text="$store.net.title"></b>
+                <span class="net-long" x-text="$store.net.detail"></span>
+            </p>
+            <span x-show="$store.net.pending > 0" class="net-count" x-text="$store.net.pending + ' pending'"></span>
+            <button type="button" x-show="$store.net.tone === 'ok'" class="net-btn" @click="location.reload()">Reload</button>
+            <button type="button" x-show="$store.net.tone === 'warn' && $store.net.needsLogin" class="net-btn" @click="location.assign($store.net.loginUrl())">Sign in</button>
+            <button type="button" x-show="$store.net.offline" class="net-btn" @click="$store.net.check(true)" :disabled="$store.net.checking" x-text="$store.net.checking ? 'Checking…' : 'Retry'"></button>
+            <button type="button" x-show="$store.net.pending + $store.net.failed > 0" class="net-btn" @click="$store.net.toggle()" :aria-expanded="$store.net.open" aria-controls="net-panel">Details</button>
+        </div>
+        <div id="net-panel" x-show="$store.net.open" x-transition class="net-panel" @click.outside="$store.net.open = false">
+            <p class="net-note">
+                Changes made while offline are encrypted and stored only in this browser. They are sent to the server automatically, in order,
+                as soon as it is reachable again. Logging out deletes unsynced changes from this device.
+            </p>
+            <ul class="net-list">
+                <template x-for="it in $store.net.items" :key="it.id">
+                    <li class="net-item">
+                        <div class="net-item-main">
+                            <b x-text="it.label"></b>
+                            <small x-text="$store.net.ago(it.createdAt) + (it.status === 'failed' ? ' · Failed: ' + (it.error || 'rejected') : ' · Waiting to sync')"></small>
+                        </div>
+                        <button type="button" x-show="it.status === 'failed'" class="net-btn" @click="$store.net.retry(it.id)">Retry</button>
+                        <button type="button" class="net-btn net-btn-ghost" @click="$store.net.discard(it)">Discard</button>
+                    </li>
+                </template>
+                <li x-show="!$store.net.items.length" class="net-note">No pending changes.</li>
+            </ul>
+        </div>
+    </div>
+
     <div x-data x-init='$store.toast.seed(<?= e(json_encode($flashes, JSON_UNESCAPED_UNICODE)) ?>)'
         class="pointer-events-none fixed bottom-24 left-1/2 z-[80] flex w-[min(92vw,24rem)] -translate-x-1/2 flex-col items-center gap-2 lg:bottom-8" role="status" aria-live="polite">
         <template x-for="t in $store.toast.items" :key="t.id">
@@ -296,7 +336,7 @@ function page(string $title, string $active, string $body, array $opts = []): vo
     layout_head($isHome ? APP_NAME : $title . ' · ' . APP_NAME);
 ?>
 
-    <body class="pb-24 lg:pb-0" data-base="<?= e(base_path()) ?>" data-version="<?= e(APP_VERSION) ?>"
+    <body class="pb-24 lg:pb-0" data-base="<?= e(base_path()) ?>" data-version="<?= e(APP_VERSION) ?>" data-uid="<?= e(client_uid()) ?>"
         x-data="{ drawer: false }" @keydown.escape.window="drawer = false" :class="{ 'overflow-hidden': drawer }">
         <a href="#main" class="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[100] focus:rounded-xl focus:bg-surface focus:px-4 focus:py-2">Skip to content</a>
 

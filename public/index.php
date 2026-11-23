@@ -106,6 +106,9 @@ $routes = [
     ['GET',  '#^/export/backup\.json$#',       'action_export_json'],
 
     ['GET',  '#^/search$#',                    'page_search'],
+
+    // --- Offline support: health check + fresh CSRF token for the Service Worker outbox ---
+    ['GET',  '#^/api/session$#',               'api_session'],
 ];
 
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
@@ -119,7 +122,7 @@ if (preg_match('#^/public(/.*)?$#', $path, $matches)) {
     exit;
 }
 
-const PUBLIC_HANDLERS = ['page_home', 'page_landing', 'page_changelog', 'page_login', 'action_login', 'page_register', 'action_register', 'action_logout'];
+const PUBLIC_HANDLERS = ['page_home', 'page_landing', 'page_changelog', 'page_login', 'action_login', 'page_register', 'action_register', 'action_logout', 'api_session'];
 
 try {
     foreach ($routes as [$routeMethod, $pattern, $handler]) {
@@ -133,6 +136,9 @@ try {
                 }
                 redirect('/login');
             }
+            if ($routeMethod === 'POST') {
+                replay_guard();
+            }
             array_shift($matches);
             $args = array_map(fn($val) => ctype_digit($val) ? (int) $val : $val, $matches);
             $handler(...$args);
@@ -142,6 +148,7 @@ try {
     not_found();
 } catch (Throwable $ex) {
     error_log('[content-planner] ' . $ex);
+    replay_release(); // a failed offline replay may be retried later
     http_response_code(500);
     $msg = '<div class="card mx-auto mt-10 max-w-md p-8 text-center"><h2 class="text-xl font-extrabold">Something went wrong</h2>'
         . '<p class="mt-1 text-sm text-muted">Please reload the page. If the issue persists, check the PHP error log and write permissions on the <code>data/</code> directory.</p></div>';

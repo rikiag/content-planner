@@ -101,6 +101,71 @@ function logout_user(): void
     $_SESSION['csrf'] = bin2hex(random_bytes(24));
 }
 
+/**
+ * Stable, opaque per-account identifier for the browser's offline outbox.
+ * Used only to make sure changes queued offline are replayed into the same account (shared devices).
+ * Authorization is still enforced server-side on every replayed request (session + CSRF).
+ */
+function client_uid(): string
+{
+    $u = current_user();
+    if (!$u) {
+        return '';
+    }
+    return substr(hash('sha256', 'cp-client|' . $u['id'] . '|' . $u['email'] . '|' . $u['created_at']), 0, 32);
+}
+
+/**
+ * GET /api/session — lightweight health check used by the offline banner and the Service Worker.
+ * Returns a fresh CSRF token for the signed-in user (same-origin only: no CORS headers, CORP same-origin).
+ */
+function api_session(): never
+{
+    header('X-Robots-Tag: noindex');
+    $user = current_user();
+    json_out([
+        'ok'   => true,
+        'auth' => $user !== null,
+        'uid'  => $user ? client_uid() : null,
+        'csrf' => $user ? csrf_token() : null,
+        'time' => time(),
+    ]);
+}
+
+/**
+ * Idempotency guard for offline replays: the Service Worker sends a unique X-CP-Replay-Id per queued change,
+ * so a change is never applied twice if a sync is interrupted and retried.
+ */
+function replay_guard(): void
+{
+    $id = (string) ($_SERVER['HTTP_X_CP_REPLAY_ID'] ?? '');
+    if ($id === '') {
+        return;
+    }
+    if (!preg_match('/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/', $id)) {
+        json_out(['ok' => false, 'error' => 'Invalid replay id.'], 400);
+    }
+    $seen = is_array($_SESSION['cp_replayed'] ?? null) ? $_SESSION['cp_replayed'] : [];
+    if (isset($seen[$id])) {
+        json_out(['ok' => true, 'duplicate' => true, 'msg' => 'Already synced.']);
+    }
+    $seen[$id] = time();
+    if (count($seen) > 300) {
+        asort($seen);
+        $seen = array_slice($seen, -300, null, true);
+    }
+    $_SESSION['cp_replayed'] = $seen;
+}
+
+/** Forget the current replay id (called when the handler failed, so the change can be retried). */
+function replay_release(): void
+{
+    $id = (string) ($_SERVER['HTTP_X_CP_REPLAY_ID'] ?? '');
+    if ($id !== '' && isset($_SESSION['cp_replayed'][$id])) {
+        unset($_SESSION['cp_replayed'][$id]);
+    }
+}
+
 function cookie_params(int $lifetime): array
 {
     return [

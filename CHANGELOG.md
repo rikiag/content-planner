@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+- **Offline Mode when the server is down** (e.g. Cloudflare Tunnel **Error 1033** / HTTP 530, 502, 521, 522, 523, power or network outages at the host): the Service Worker now treats these responses like a lost connection and serves the cached app instead of the Cloudflare error page.
+- **Encrypted offline outbox**: form submissions and inline actions (status changes, quick ideas, notes, deletes…) made while offline are stored in IndexedDB, encrypted with AES-GCM 256 using a non-extractable, device-only key, and **synced automatically** in order when the server is reachable again (Background Sync where supported, plus health-check polling).
+- **Offline / sync status bar** at the top of every page ("Server is offline… your changes are saved securely on this device and will be synced automatically"), with a **Details** panel to review, retry, or discard pending changes.
+- `GET /api/session` health-check endpoint (returns sign-in state and a fresh CSRF token, same-origin only).
+- Main pages are pre-cached after sign-in (at most every 6 hours) so they open even if they were never visited before the outage.
+
+### Security
+- Sensitive routes (`/login`, `/register`, `/logout`, `/account/*`, `/export/*`) and any field named like a password are **never** stored offline; CSRF tokens are never persisted (a fresh token is fetched at sync time).
+- Queued changes are bound to the signed-in account and are only replayed into that same account; replays carry an idempotency key (`X-CP-Replay-Id`) so a change is never applied twice.
+- Logging out wipes cached pages, the offline outbox, and its encryption key from the device (with a warning if unsynced changes exist). Queued changes expire after 14 days.
+
 ## [1.4.0] - 2026-11-17
 
 ### Added

@@ -104,6 +104,7 @@ Open the URL in your browser and **create your first account** (leave **"Start w
 | `/notes` | Color-coded sticky notes with pinning; pinned/recent notes appear in the sidebar |
 | `/export` | One-click TSV copy for Google Sheets, CSV downloads (`content.csv`, `campaigns.csv`, `ideas.csv`), full JSON backup |
 | `/search?q=` | Global search across content, campaigns, ideas, resources, and notes |
+| `/api/session` | JSON health check used by the offline status bar and Service Worker (sign-in state + fresh CSRF token, same-origin only) |
 
 ---
 
@@ -120,6 +121,26 @@ Open the URL in your browser and **create your first account** (leave **"Start w
 - `public/manifest.webmanifest` and `public/sw.js` (cache-first for static assets; network-first with cache and `offline.html` fallback for pages).
 - App icons in `public/icons/` can be regenerated with `python3 tools/make_icons.py` (requires Pillow).
 - `APP_VERSION` in `src/helpers.php` is passed automatically when registering `sw.js?v={APP_VERSION}`, refreshing the PWA cache on every new release.
+
+### Offline Mode (server down / Cloudflare Tunnel Error 1033)
+
+When the app is self-hosted behind a Cloudflare Tunnel (e.g. on a home PC), a power or network outage makes Cloudflare answer with **Error 1033** (HTTP 530) or 502/521/522/523. The Service Worker treats these exactly like a lost connection:
+
+- **Reading:** pages are served from the on-device cache (network-first, 10 s timeout). After sign-in, the main pages are pre-cached so they work even if they were never opened before the outage.
+- **Writing:** form submissions and inline actions that cannot reach the server are stored in an **encrypted IndexedDB outbox** and replayed automatically, in order, as soon as `/api/session` responds again (Background Sync where supported + polling every 15 s while offline).
+- **Status bar:** a bar at the top of every page shows *Server is offline* / *Your device is offline*, the number of pending changes, and a **Details** panel to retry or discard individual changes.
+
+Security model:
+
+| Concern | Mitigation |
+|---|---|
+| Data at rest on the device | AES-GCM 256 per record (random IV, record id + account bound as AAD); the key is generated on the device, stored non-extractable, and never sent anywhere |
+| Credentials / secrets | `/login`, `/register`, `/logout`, `/account/*`, `/export/*`, file uploads, and any `*password*` field are never queued; CSRF tokens are never stored (fresh token fetched at sync) |
+| Shared devices | Changes are bound to the signed-in account and only replayed into that account; logout wipes cached pages, the outbox, and the key; changes expire after 14 days |
+| Duplicate writes | Each replay carries `X-CP-Replay-Id`; the server ignores ids it has already applied (per session) |
+| Server-side authorization | Unchanged: every replayed request still passes session authentication + CSRF validation |
+
+> Limitations: the very first visit on a device (before the Service Worker is installed) cannot work offline, and an attacker able to run script on the same origin (XSS) could use the key — as with any browser storage. Changes made offline are not merged into cached pages until they are synced and the page is reloaded.
 
 ---
 

@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 defined('ROOT') || (http_response_code(403) && exit);
@@ -9,8 +10,10 @@ function export_dataset(string $name): array
     return match ($name) {
         'content' => [
             ['Title', 'Platform', 'Format', 'Pillar', 'Status', 'Campaign', 'Scheduled At', 'Published At', 'Progress %', 'Views', 'Likes', 'Comments', 'Shares', 'Saves', 'ER %', 'Post URL'],
-            array_map(fn($c) => [$c['title'], $c['platform'], $c['format'], $c['pillar'], statuses()[$c['status']]['label'] ?? $c['status'], $c['campaign_name'], $c['scheduled_at'], $c['published_at'], $c['progress'], $c['views'], $c['likes'], $c['comments'], $c['shares'], $c['saves'], number_format(er($c), 2, '.', ''), $c['post_url']],
-                q('SELECT c.*, ca.name AS campaign_name FROM contents c LEFT JOIN campaigns ca ON ca.id=c.campaign_id ORDER BY c.scheduled_at')),
+            array_map(
+                fn($c) => [$c['title'], $c['platform'], $c['format'], $c['pillar'], statuses()[$c['status']]['label'] ?? $c['status'], $c['campaign_name'], $c['scheduled_at'], $c['published_at'], $c['progress'], $c['views'], $c['likes'], $c['comments'], $c['shares'], $c['saves'], number_format(er($c), 2, '.', ''), $c['post_url']],
+                q('SELECT c.*, ca.name AS campaign_name FROM contents c LEFT JOIN campaigns ca ON ca.id=c.campaign_id ORDER BY c.scheduled_at')
+            ),
         ],
         'campaigns' => [
             ['Name', 'Goal', 'Status', 'Start Date', 'End Date', 'Total Content', 'Published'],
@@ -47,9 +50,15 @@ function action_export_csv(string $name): void
 function action_export_json(): void
 {
     $data = [
-        'app' => APP_NAME, 'version' => APP_VERSION, 'exported_at' => date('c'),
-        'settings' => q('SELECT * FROM settings'), 'campaigns' => q('SELECT * FROM campaigns'), 'contents' => q('SELECT * FROM contents'),
-        'ideas' => q('SELECT * FROM ideas'), 'resources' => q('SELECT * FROM resources'), 'notes' => q('SELECT * FROM notes'),
+        'app' => APP_NAME,
+        'version' => APP_VERSION,
+        'exported_at' => date('c'),
+        'settings' => q('SELECT * FROM settings'),
+        'campaigns' => q('SELECT * FROM campaigns'),
+        'contents' => q('SELECT * FROM contents'),
+        'ideas' => q('SELECT * FROM ideas'),
+        'resources' => q('SELECT * FROM resources'),
+        'notes' => q('SELECT * FROM notes'),
     ];
     header('Content-Type: application/json; charset=utf-8');
     header('Content-Disposition: attachment; filename="content-planner-backup-' . date('Ymd') . '.json"');
@@ -74,8 +83,10 @@ function page_export(): void
         <section class="card p-5 sm:p-6 lg:col-span-2">
             <div class="flex items-start gap-4">
                 <span class="grid size-12 shrink-0 place-items-center rounded-2xl bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20"><?= icon('sheet', 'size-6') ?></span>
-                <div><h2 class="text-lg font-extrabold">Send to Google Sheets</h2>
-                    <p class="mt-1 text-sm text-muted">Fastest zero-auth workflow: copy the table below, open Google Sheets, and paste (Ctrl/⌘ + V). Columns split automatically.</p></div>
+                <div>
+                    <h2 class="text-lg font-extrabold">Send to Google Sheets</h2>
+                    <p class="mt-1 text-sm text-muted">Fastest zero-auth workflow: copy the table below, open Google Sheets, and paste (Ctrl/⌘ + V). Columns split automatically.</p>
+                </div>
             </div>
             <div class="mt-4 flex flex-wrap gap-2">
                 <button type="button" class="btn-primary" @click="$copy($refs.tsv.value)"><?= icon('copy', 'size-4') ?>Copy content table</button>
@@ -88,16 +99,30 @@ function page_export(): void
         <?php foreach ($files as [$k, $t, $d, $ic, $n]): ?>
             <section class="card flex items-center gap-4 p-5">
                 <span class="grid size-11 shrink-0 place-items-center rounded-2xl bg-soft text-brand"><?= icon($ic, 'size-5') ?></span>
-                <div class="min-w-0 flex-1"><h3 class="text-sm font-extrabold"><?= e($t) ?></h3><p class="text-xs text-muted"><?= e($d) ?> <b>(<?= $n ?> rows)</b></p></div>
+                <div class="min-w-0 flex-1">
+                    <h3 class="text-sm font-extrabold"><?= e($t) ?></h3>
+                    <p class="text-xs text-muted"><?= e($d) ?> <b>(<?= $n ?> rows)</b></p>
+                </div>
                 <a href="<?= e(url('/export/' . $k . '.csv')) ?>" class="btn-ghost !px-3.5 !py-2 !text-xs" download><?= icon('download', 'size-4') ?>CSV</a>
             </section>
         <?php endforeach; ?>
         <section class="card flex items-center gap-4 p-5">
             <span class="grid size-11 shrink-0 place-items-center rounded-2xl bg-soft text-brand"><?= icon('database', 'size-5') ?></span>
-            <div class="min-w-0 flex-1"><h3 class="text-sm font-extrabold">Full workspace backup</h3><p class="text-xs text-muted">All workspace tables exported in a single JSON file.</p></div>
+            <div class="min-w-0 flex-1">
+                <h3 class="text-sm font-extrabold">Full workspace backup</h3>
+                <p class="text-xs text-muted">All workspace tables exported in a single JSON file.</p>
+            </div>
             <a href="<?= e(url('/export/backup.json')) ?>" class="btn-ghost !px-3.5 !py-2 !text-xs" download><?= icon('download', 'size-4') ?>JSON</a>
         </section>
+        <section class="card flex items-center gap-4 p-5 lg:col-span-2">
+            <span class="grid size-11 shrink-0 place-items-center rounded-2xl bg-soft text-brand"><?= icon('upload', 'size-5') ?></span>
+            <div class="min-w-0 flex-1">
+                <h3 class="text-sm font-extrabold">Import from CSV, Excel or Google Sheets</h3>
+                <p class="text-xs text-muted">Bring content, campaigns or ideas in from a spreadsheet. Templates included.</p>
+            </div>
+            <a href="<?= e(url('/import')) ?>" class="btn-primary !px-3.5 !py-2 !text-xs"><?= icon('upload', 'size-4') ?>Import</a>
+        </section>
     </div>
-    <?php
+<?php
     page('Export Sheet', 'export', (string) ob_get_clean(), ['subtitle' => 'Export data to Google Sheets / Excel']);
 }

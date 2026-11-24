@@ -37,6 +37,7 @@ function icon(string $name, string $cls = 'size-5'): string
         'copy'           => '<rect x="9" y="9" width="11" height="11" rx="2.5"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/>',
         'link'           => '<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>',
         'download'       => '<path d="M12 4v11M7 11l5 5 5-5M4 20h16"/>',
+        'upload'         => '<path d="M12 16V5M7 9l5-5 5 5M4 20h16"/>',
         'clock'          => '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
         'eye'            => '<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/>',
         'heart'          => '<path d="M12 20s-8-4.9-8-11a4.5 4.5 0 0 1 8-2.5A4.5 4.5 0 0 1 20 9c0 6.1-8 11-8 11Z"/>',

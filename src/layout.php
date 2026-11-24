@@ -466,6 +466,7 @@ function page(string $title, string $active, string $body, array $opts = []): vo
                                 <span x-show="$store.theme.dark" x-cloak><?= icon('sun', 'size-5') ?></span>
                             </button>
                             <button class="icon-btn hidden md:grid" @click="location.reload()" aria-label="Reload page"><?= icon('refresh', 'size-5') ?></button>
+                            <a href="<?= e(url('/import')) ?>" class="icon-btn hidden md:grid" aria-label="Import data" title="Import CSV / Excel / Google Sheets"><?= icon('upload', 'size-5') ?></a>
                             <a href="<?= e(url('/export')) ?>" class="icon-btn hidden md:grid" aria-label="Export to Sheets"><?= icon('sheet', 'size-5') ?></a>
                             <a href="<?= e(url('/content/new')) ?>" class="ml-1 hidden items-center gap-1.5 rounded-2xl bg-white px-4 py-2.5 text-sm font-bold text-slate-800 shadow-sm transition active:scale-95 sm:inline-flex dark:bg-slate-900/80 dark:text-white"><?= icon('plus', 'size-4') ?>New content</a>
                         </div>

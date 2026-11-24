@@ -209,3 +209,43 @@ body.has-net-bar { padding-top: calc(2.75rem + env(safe-area-inset-top)); }
 body.has-net-bar .app-header { top: calc(2.75rem + env(safe-area-inset-top)); }
 @media (max-width: 639px) { .net-long { display: none; } .net-bar-row { padding: 0 .75rem; gap: .4rem; } }
 @media print { .net-bar { display: none !important; } }
+
+/* ---------- Import page (plain CSS, independent of the Tailwind build) ---------- */
+.imp-wrap { display: grid; gap: 1.25rem; max-width: 60rem; margin: 0 auto; }
+.imp-card { padding: 1.25rem; }
+@media (min-width: 640px) { .imp-card { padding: 1.5rem; } }
+.imp-h { margin: 0 0 .25rem; font-size: 1.05rem; font-weight: 800; }
+.imp-p { margin: 0 0 1rem; font-size: .85rem; color: var(--c-muted); line-height: 1.55; }
+.imp-label { margin: 1rem 0 .5rem; font-size: .72rem; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; color: var(--c-brand); }
+.imp-pills { display: flex; flex-wrap: wrap; gap: .5rem; }
+.imp-panel { margin-top: 1rem; }
+.imp-hint { margin: .5rem 0 0; font-size: .72rem; color: var(--c-muted); line-height: 1.55; }
+.imp-hint code { padding: .05rem .3rem; border-radius: .3rem; background: var(--c-soft); }
+.imp-link { font-weight: 700; color: var(--c-brand); text-decoration: underline; }
+.imp-mono { font-family: var(--font-mono, ui-monospace, monospace); font-size: .72rem; white-space: pre; }
+.imp-drop { position: relative; display: flex; flex-direction: column; align-items: center; gap: .35rem; padding: 1.75rem 1rem; text-align: center; cursor: pointer;
+  border: 2px dashed var(--c-line); border-radius: 1.25rem; background: var(--c-soft2); color: var(--c-brand); transition: border-color .15s, background .15s; }
+.imp-drop:hover, .imp-drop:focus-within { border-color: var(--c-brand); background: var(--c-brand-soft); }
+.imp-drop b { font-size: .85rem; color: var(--c-ink); word-break: break-all; }
+.imp-drop small { font-size: .7rem; color: var(--c-muted); }
+.imp-file { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+.imp-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: .5rem; margin-top: 1.25rem; }
+.imp-tpl { list-style: none; margin: 0; padding: 0; display: grid; gap: .6rem; }
+.imp-tpl li { display: flex; align-items: center; flex-wrap: wrap; gap: .6rem; padding: .7rem .8rem; border-radius: 1rem; background: var(--c-soft2); }
+.imp-ico { display: grid; place-items: center; width: 2.5rem; height: 2.5rem; border-radius: .9rem; background: var(--c-soft); color: var(--c-brand); flex: none; }
+.imp-grow { flex: 1; min-width: 10rem; display: flex; flex-direction: column; }
+.imp-grow b { font-size: .85rem; }
+.imp-grow small { font-size: .72rem; color: var(--c-muted); }
+.imp-table-wrap { overflow-x: auto; }
+.imp-table { width: 100%; border-collapse: collapse; font-size: .78rem; }
+.imp-table th { text-align: left; padding: .5rem .6rem; font-size: .68rem; text-transform: uppercase; letter-spacing: .04em; color: var(--c-muted); border-bottom: 1px solid var(--c-line); white-space: nowrap; }
+.imp-table td { padding: .55rem .6rem; border-bottom: 1px solid var(--c-line); vertical-align: top; }
+.imp-msg { margin-top: .3rem; font-size: .68rem; color: var(--c-muted); max-width: 22rem; }
+.imp-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr)); gap: .6rem; }
+.imp-stats > div { padding: .8rem; border-radius: 1rem; background: var(--c-soft2); display: flex; flex-direction: column; }
+.imp-stats b { font-size: 1.4rem; font-weight: 800; }
+.imp-stats span { font-size: .7rem; color: var(--c-muted); }
+.imp-good b { color: #059669; } .imp-warn b { color: #d97706; } .imp-bad b { color: #e11d48; }
+.imp-check { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem; margin-bottom: .6rem; font-size: .85rem; font-weight: 600; cursor: pointer; }
+.imp-check input { width: 1rem; height: 1rem; accent-color: var(--c-brand); }
+.imp-check small { font-weight: 400; color: var(--c-muted); }

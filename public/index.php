@@ -26,7 +26,7 @@ require ROOT . '/src/auth.php';
 require ROOT . '/src/seed.php';
 require ROOT . '/src/layout.php';
 require ROOT . '/src/forms.php';
-foreach (['auth', 'landing', 'changelog', 'home', 'content', 'campaign', 'idea', 'categories', 'resources', 'analytics', 'account', 'notes', 'export', 'search'] as $page) {
+foreach (['auth', 'landing', 'changelog', 'home', 'content', 'campaign', 'idea', 'categories', 'resources', 'analytics', 'account', 'notes', 'export', 'import', 'search'] as $page) {
     require ROOT . '/src/pages/' . $page . '.php';
 }
 
@@ -106,6 +106,11 @@ $routes = [
     ['GET',  '#^/export/backup\.json$#',       'action_export_json'],
 
     ['GET',  '#^/search$#',                    'page_search'],
+
+    ['GET',  '#^/import$#',                    'page_import'],
+    ['POST', '#^/import/preview$#',            'action_import_preview'],
+    ['POST', '#^/import/confirm$#',            'action_import_confirm'],
+    ['GET',  '#^/import/template/(content|campaigns|ideas)\.(csv|xlsx)$#', 'action_import_template'],
 
     // --- Offline support: health check + fresh CSRF token for the Service Worker outbox ---
     ['GET',  '#^/api/session$#',               'api_session'],

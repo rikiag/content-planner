@@ -9,7 +9,7 @@
  * Increment VERSION when updating the PRECACHE list.
  */
 const verParam = new URL(self.location.href).searchParams.get('v') || '1.4.0';
-const VERSION = `cp-v3-${verParam}`;
+const VERSION = `cp-v4-${verParam}`;
 const STATIC = `${VERSION}-static`;
 const PAGES = `${VERSION}-pages`;
 const scope = self.registration.scope;

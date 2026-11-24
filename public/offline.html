@@ -16,20 +16,60 @@
   .ic { width:4rem; height:4rem; margin:0 auto 1rem; display:grid; place-items:center; border-radius:1.25rem; background:linear-gradient(135deg,#3b82f6,#4f46e5); color:#fff; }
   h1 { margin:.25rem 0 .5rem; font-size:1.25rem; }
   p { margin:0 0 1.25rem; color:var(--muted); font-size:.9rem; line-height:1.55; }
+  .note { font-size:.8rem; }
+  .status { margin:.9rem 0 0; font-size:.75rem; }
+  [hidden] { display:none !important; }
   button { font:inherit; font-weight:700; border:0; border-radius:999px; padding:.7rem 1.4rem; background:var(--brand); color:#fff; cursor:pointer; }
 </style>
 </head>
 <body>
 <main>
   <div class="ic" aria-hidden="true">
-    <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8.8a15 15 0 0 1 20 0M5 12.5a10 10 0 0 1 14 0M8.5 16a5 5 0 0 1 7 0M12 20h.01M3 3l18 18"/></svg>
+    <svg id="ic-device" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" hidden><path d="M2 8.8a15 15 0 0 1 20 0M5 12.5a10 10 0 0 1 14 0M8.5 16a5 5 0 0 1 7 0M12 20h.01M3 3l18 18"/></svg>
+    <svg id="ic-server" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="7" rx="2"/><rect x="3" y="13" width="18" height="7" rx="2"/><path d="M7 7.5h.01M7 16.5h.01M3 3l18 18"/></svg>
   </div>
-  <h1>Server or device offline</h1>
-  <p>The Content Planner server can't be reached right now (for example a power or network outage), or your device has no connection.
-     This page hasn't been saved on this device yet. Pages you've opened before still work offline, and changes you make there are
-     stored securely on this device and synced automatically once the server is back.</p>
+  <h1 id="title">Server Offline or Cannot Access</h1>
+  <p id="msg">The Content Planner server can't be reached right now (for example a power or network outage at the host). Your device is online.</p>
+  <p class="note">This page hasn't been saved on this device yet. Pages you've opened before still work offline, and changes you make there are stored securely on this device and synced automatically once the server is back.</p>
   <button onclick="location.reload()">Try again</button>
+  <p class="status" id="status" aria-live="polite"></p>
   <p style="margin:1rem 0 0"><a href="./" style="color:var(--brand);font-weight:700;font-size:.85rem">Open Dashboard</a></p>
 </main>
+<script>
+(function () {
+  var T = {
+    device: { title: 'You\u2019re currently offline', msg: 'Your device has no internet connection. Check your Wi-Fi or mobile data and try again.', tab: 'You\u2019re offline' },
+    server: { title: 'Server Offline or Cannot Access', msg: 'The Content Planner server can\u2019t be reached right now (for example a power or network outage at the host). Your device is online.', tab: 'Server offline' }
+  };
+  var $ = function (id) { return document.getElementById(id); };
+  var probing = false;
+  function render() {
+    var k = navigator.onLine === false ? 'device' : 'server';
+    $('title').textContent = T[k].title;
+    $('msg').textContent = T[k].msg;
+    $('ic-device').hidden = k !== 'device';
+    $('ic-server').hidden = k !== 'server';
+    document.title = T[k].tab + ' \u00b7 Content Planner';
+  }
+  function probe() {
+    if (probing || navigator.onLine === false) return;
+    probing = true;
+    var ctl = new AbortController();
+    var t = setTimeout(function () { ctl.abort(); }, 6000);
+    fetch('api/session', { cache: 'no-store', credentials: 'same-origin', signal: ctl.signal, headers: { Accept: 'application/json' } })
+      .then(function (r) {
+        if (r.ok && (r.headers.get('content-type') || '').indexOf('application/json') !== -1) location.reload();
+        else $('status').textContent = 'Server still unreachable. Checking again\u2026';
+      })
+      .catch(function () { $('status').textContent = 'Server still unreachable. Checking again\u2026'; })
+      .then(function () { clearTimeout(t); probing = false; });
+  }
+  addEventListener('offline', render);
+  addEventListener('online', function () { render(); probe(); });
+  render();
+  probe();
+  setInterval(probe, 10000); // reload automatically as soon as the server is back
+})();
+</script>
 </body>
 </html>

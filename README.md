@@ -104,6 +104,7 @@ Open the URL in your browser and **create your first account** (leave **"Start w
 | `/notes` | Color-coded sticky notes with pinning; pinned/recent notes appear in the sidebar |
 | `/export` | One-click TSV copy for Google Sheets, CSV downloads (`content.csv`, `campaigns.csv`, `ideas.csv`), full JSON backup |
 | `/search?q=` | Global search across content, campaigns, ideas, resources, and notes |
+| `/import` | Import Content, Campaigns or Ideas from CSV / TSV / XLSX, a public Google Sheets link, or pasted cells — with preview, duplicate skipping, and downloadable CSV / XLSX templates (`/import/template/{content\|campaigns\|ideas}.{csv\|xlsx}`) |
 | `/api/session` | JSON health check used by the offline status bar and Service Worker (sign-in state + fresh CSRF token, same-origin only) |
 
 ---

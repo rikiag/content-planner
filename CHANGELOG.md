@@ -7,6 +7,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ## [Unreleased]
 
 ### Added
+- **Import from CSV, Excel (.xlsx) and Google Sheets** at `/import` for **Content**, **Campaigns** and **Ideas**: upload a `.csv` / `.tsv` / `.xlsx` file, paste a public Google Sheets link, or paste copied cells. A **preview step** shows OK / warning / error / duplicate per row before anything is saved; the import then runs in a single transaction (all or nothing).
+- **Import templates** (`/import/template/{content|campaigns|ideas}.{csv|xlsx}`): CSV and XLSX with example rows; the XLSX templates add dropdown lists and a **Guide** sheet. Files produced by the Export page can be re-imported as-is.
+- Smart parsing: auto-detected delimiter (`,` `;` tab) and encoding (UTF-8 / UTF-16 / Windows-1252), Excel date cells, `dd/mm/yyyy` and ISO dates, `1.200` / `1.5k` numbers, case-insensitive labels, optional auto-creation of missing campaigns, and skipping of rows that already exist.
 - **Offline Mode when the server is down** (e.g. Cloudflare Tunnel **Error 1033** / HTTP 530, 502, 521, 522, 523, power or network outages at the host): the Service Worker now treats these responses like a lost connection and serves the cached app instead of the Cloudflare error page.
 - **Encrypted offline outbox**: form submissions and inline actions (status changes, quick ideas, notes, deletes…) made while offline are stored in IndexedDB, encrypted with AES-GCM 256 using a non-extractable, device-only key, and **synced automatically** in order when the server is reachable again (Background Sync where supported, plus health-check polling).
 - **Offline / sync status bar** at the top of every page ("Server is offline… your changes are saved securely on this device and will be synced automatically"), with a **Details** panel to review, retry, or discard pending changes.
@@ -14,6 +17,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Main pages are pre-cached after sign-in (at most every 6 hours) so they open even if they were never visited before the outage.
 
 ### Security
+- Import hardening: 2 MB / 1000-row limits, zip-bomb guard and no external XML entities for XLSX, Google-only host allow-list (with redirect checks) for link imports, every value normalized and length-capped, parameterized SQL, CSRF-protected, and never queued by the offline outbox.
 - Sensitive routes (`/login`, `/register`, `/logout`, `/account/*`, `/export/*`) and any field named like a password are **never** stored offline; CSRF tokens are never persisted (a fresh token is fetched at sync time).
 - Queued changes are bound to the signed-in account and are only replayed into that same account; replays carry an idempotency key (`X-CP-Replay-Id`) so a change is never applied twice.
 - Logging out wipes cached pages, the offline outbox, and its encryption key from the device (with a warning if unsynced changes exist). Queued changes expire after 14 days.

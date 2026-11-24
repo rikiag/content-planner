@@ -8,7 +8,7 @@
  *   Sensitive routes (login, register, logout, account, export) are NEVER queued, and CSRF tokens are never stored.
  * Increment VERSION when updating the PRECACHE list.
  */
-const verParam = new URL(self.location.href).searchParams.get('v') || '1.4.0';
+const verParam = new URL(self.location.href).searchParams.get('v') || '1.5.0';
 const VERSION = `cp-v4-${verParam}`;
 const STATIC = `${VERSION}-static`;
 const PAGES = `${VERSION}-pages`;

@@ -6,6 +6,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-11-24
+![Content Planner Latest Screenshot](public/assets/images/screenshot-2026-11-24.webp)
+
 ### Added
 - **Import from CSV, Excel (.xlsx) and Google Sheets** at `/import` for **Content**, **Campaigns** and **Ideas**: upload a `.csv` / `.tsv` / `.xlsx` file, paste a public Google Sheets link, or paste copied cells. A **preview step** shows OK / warning / error / duplicate per row before anything is saved; the import then runs in a single transaction (all or nothing).
 - **Import templates** (`/import/template/{content|campaigns|ideas}.{csv|xlsx}`): CSV and XLSX with example rows; the XLSX templates add dropdown lists and a **Guide** sheet. Files produced by the Export page can be re-imported as-is.
@@ -52,7 +55,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Dispatched `input` events from the Markdown editor toolbar so Alpine `x-model` stays synchronized when formatting text.
 
 ## [1.2.0] - 2026-11-12
-![Content Planner Latest Screenshot](public/assets/images/screenshot-2026-11-12.webp)
+![Content Planner v1.2.0 Screenshot](public/assets/images/screenshot-2026-11-12.webp)
 
 ### Added
 - Sidebar now shows the latest 3 colored notes, with a detail modal.

@@ -89,18 +89,25 @@ function page_landing(): void
             'desc'  => 'Copy TSV tables directly into Google Sheets with one click, download formula-safe UTF-8 CSV reports, or export a complete JSON workspace backup anytime.',
         ],
         [
+            'icon'  => 'upload',
+            'color' => 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300',
+            'badge' => '/import',
+            'title' => 'CSV, Excel & Google Sheets Import',
+            'desc'  => 'Import Content, Campaigns, or Ideas from .csv, .tsv, .xlsx files, a public Google Sheets link, or pasted cells. Preview every row (OK, warning, duplicate, error), auto-create missing campaigns, and download ready-to-use CSV/XLSX templates.',
+        ],
+        [
             'icon'  => 'smartphone',
             'color' => 'bg-pink-100 text-pink-700 dark:bg-pink-500/20 dark:text-pink-300',
-            'badge' => 'PWA · Dark Mode',
-            'title' => 'Installable PWA & System Dark Mode',
-            'desc'  => 'Install on iOS, Android, macOS, or Windows with offline page caching via Service Worker. Flicker-free Light, Dark, and System themes synced across tabs.',
+            'badge' => 'PWA · Offline',
+            'title' => 'Offline Mode & Encrypted Auto-Sync',
+            'desc'  => 'Install on iOS, Android, macOS, or Windows. Keep browsing cached pages and saving changes even during server/network outages (including Cloudflare Error 1033)—queued in an AES-GCM 256 encrypted outbox and synced automatically when back online.',
         ],
         [
             'icon'  => 'sparkle',
             'color' => 'bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300',
             'badge' => '/changelog',
             'title' => 'Built-in Release Notes & Security',
-            'desc'  => 'Stay updated with an integrated changelog parsed from CHANGELOG.md and unread release badges, backed by physical per-user SQLite isolation and strict CSP nonces.',
+            'desc'  => 'Stay updated with an integrated changelog parsed from CHANGELOG.md and unread release badges, backed by physical per-user SQLite isolation, strict CSP nonces, and system-aware Dark Mode.',
         ],
     ];
 
@@ -141,7 +148,9 @@ function page_landing(): void
         ['/account', 'Profile & goals, theme switcher, version info, PWA install prompt, JSON backup, sample data reset, account deletion'],
         ['/notes', 'Color-coded sticky notes with pinning; latest 3 notes appear in the sidebar with a detail modal'],
         ['/export', 'One-click TSV copy for Google Sheets, CSV downloads (content.csv, campaigns.csv, ideas.csv), full JSON backup'],
+        ['/import', 'Import Content, Campaigns, or Ideas from CSV/TSV/XLSX, public Google Sheets link, or pasted cells with row preview and downloadable CSV/XLSX templates'],
         ['/search?q=', 'Global search across content, campaigns, ideas, resources, and notes'],
+        ['/api/session', 'Same-origin JSON health check and fresh CSRF token endpoint for the offline status bar and Service Worker outbox sync'],
     ];
 
     $recentReleases = parse_changelog(false, 3);
@@ -305,9 +314,9 @@ function page_landing(): void
                             <span class="truncate font-mono text-[11px] font-semibold text-muted">https://rikiag.com/content-planner/</span>
                             <span class="hidden text-[11px] font-bold text-brand sm:inline">PWA · Offline Ready</span>
                         </div>
-                        <img src="<?= e(asset('assets/images/screenshot-2026-11-12.webp')) ?>"
+                        <img src="<?= e(asset('assets/images/screenshot-2026-11-24.webp')) ?>"
                             alt="Content Planner Dashboard Screenshot showing monthly progress ring, quick access tiles, weekly posting goal, and top content rankings"
-                            width="1336" height="939"
+                            width="1338" height="944"
                             class="w-full rounded-2xl border border-line">
                     </div>
 

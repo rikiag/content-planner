@@ -1260,7 +1260,7 @@
   if ('serviceWorker' in navigator && (location.protocol === 'https:' || ['localhost', '127.0.0.1'].includes(location.hostname))) {
     addEventListener('load', () => {
       const b = document.body.dataset.base || base;
-      const v = document.body.dataset.version || '1.4.0';
+      const v = document.body.dataset.version || '1.5.0';
       navigator.serviceWorker.register(`${b}/sw.js?v=${encodeURIComponent(v)}`, { scope: b + '/' }).catch(() => {});
     });
   }

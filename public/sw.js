@@ -33,7 +33,7 @@ const PRECACHE = [
  * 524 (origin timeout) and 520 (unknown) are excluded on purpose: the origin MAY have processed the request. */
 const ORIGIN_DOWN = new Set([502, 503, 521, 522, 523, 530]);
 const NAV_TIMEOUT = 10000;
-const NO_QUEUE = /^\/(login|register|logout|account|export|api)(\/|$)/;
+const NO_QUEUE = /^\/(login|register|logout|account|export|import|api)(\/|$)/;
 const MAX_AGE = 14 * 24 * 60 * 60 * 1000; // queued changes expire after 14 days
 const MAX_ITEMS = 200;
 const MAX_BYTES = 256 * 1024;
@@ -385,7 +385,7 @@ self.addEventListener('fetch', (e) => {
     return;
   }
   if (req.method !== 'GET') return;
-  if (url.pathname.includes('/export/') || url.pathname.includes('/api/')) return; // downloads & API bypass cache
+  if (url.pathname.includes('/export/') || url.pathname.includes('/import/template/') || url.pathname.includes('/api/')) return; // downloads & API bypass cache
 
   if (req.mode === 'navigate') {
     e.respondWith(handleNavigate(e, req, url));

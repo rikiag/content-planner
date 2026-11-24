@@ -129,24 +129,71 @@ function layout_overlays(array $flashes): void
             <button type="button" x-show="$store.net.offline" class="net-btn" @click="$store.net.check(true)" :disabled="$store.net.checking" x-text="$store.net.checking ? 'Checking…' : 'Retry'"></button>
             <button type="button" x-show="$store.net.pending + $store.net.failed > 0" class="net-btn" @click="$store.net.toggle()" :aria-expanded="$store.net.open" aria-controls="net-panel">Details</button>
         </div>
-        <div id="net-panel" x-show="$store.net.open" x-transition class="net-panel" @click.outside="$store.net.open = false">
-            <p class="net-note">
-                Changes made while offline are encrypted and stored only in this browser. They are sent to the server automatically, in order,
-                as soon as it is reachable again. Logging out deletes unsynced changes from this device.
-            </p>
-            <ul class="net-list">
-                <template x-for="it in $store.net.items" :key="it.id">
-                    <li class="net-item">
-                        <div class="net-item-main">
-                            <b x-text="it.label"></b>
-                            <small x-text="$store.net.ago(it.createdAt) + (it.status === 'failed' ? ' · Failed: ' + (it.error || 'rejected') : ' · Waiting to sync')"></small>
+        <div id="net-panel" x-show="$store.net.open" x-transition.opacity class="net-modal-backdrop"
+            role="dialog" aria-modal="true" aria-labelledby="net-modal-title" @click.self="$store.net.open = false">
+            <div class="net-panel" x-show="$store.net.open" x-transition.scale.95>
+                <div class="net-modal-head">
+                    <div class="net-modal-title-wrap">
+                        <span class="net-modal-icon" :class="'is-' + ($store.net.tone || 'sync')" aria-hidden="true">
+                            <?= icon('refresh', 'size-5') ?>
+                        </span>
+                        <div>
+                            <h2 id="net-modal-title" class="net-modal-title">Pending Offline Changes</h2>
+                            <p class="net-modal-sub">
+                                <span x-text="$store.net.pending + ' waiting'"></span>
+                                <template x-if="$store.net.failed > 0">
+                                    <span> · <strong class="net-text-err" x-text="$store.net.failed + ' failed'"></strong></span>
+                                </template>
+                                <span x-show="$store.net.offline"> · Server unreachable</span>
+                            </p>
                         </div>
-                        <button type="button" x-show="it.status === 'failed'" class="net-btn" @click="$store.net.retry(it.id)">Retry</button>
-                        <button type="button" class="net-btn net-btn-ghost" @click="$store.net.discard(it)">Discard</button>
-                    </li>
-                </template>
-                <li x-show="!$store.net.items.length" class="net-note">No pending changes.</li>
-            </ul>
+                    </div>
+                    <button type="button" class="net-close" @click="$store.net.open = false" aria-label="Close details">✕</button>
+                </div>
+
+                <div class="net-modal-body">
+                    <div class="net-callout">
+                        <span class="net-callout-ic" aria-hidden="true"><?= icon('lock', 'size-4') ?></span>
+                        <p class="net-note">
+                            Changes are <b>encrypted on this device</b> and synced automatically in order once the server is reachable. Logging out deletes unsynced changes.
+                        </p>
+                    </div>
+
+                    <ul class="net-list">
+                        <template x-for="it in $store.net.items" :key="it.id">
+                            <li class="net-item" :class="{ 'is-failed': it.status === 'failed' }">
+                                <span class="net-item-dot" aria-hidden="true"></span>
+                                <div class="net-item-main">
+                                    <div class="net-item-top">
+                                        <b x-text="it.label"></b>
+                                        <span class="net-badge" :class="it.status === 'failed' ? 'is-err' : 'is-wait'"
+                                            x-text="it.status === 'failed' ? 'Failed' : 'Waiting'"></span>
+                                    </div>
+                                    <small class="net-item-meta" x-text="$store.net.ago(it.createdAt)"></small>
+                                    <p x-show="it.status === 'failed'" class="net-item-err" x-text="it.error || 'Sync rejected by server'"></p>
+                                </div>
+                                <div class="net-item-actions">
+                                    <button type="button" x-show="it.status === 'failed'" class="net-btn net-btn-primary" @click="$store.net.retry(it.id)">Retry</button>
+                                    <button type="button" class="net-btn net-btn-ghost" @click="$store.net.discard(it)">Discard</button>
+                                </div>
+                            </li>
+                        </template>
+                        <li x-show="!$store.net.items.length" class="net-empty">
+                            <span>All caught up — no pending changes on this device.</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="net-modal-foot">
+                    <button type="button" x-show="$store.net.offline" class="net-btn net-btn-primary"
+                        @click="$store.net.check(true)" :disabled="$store.net.checking"
+                        x-text="$store.net.checking ? 'Checking…' : 'Check connection'"></button>
+                    <button type="button" x-show="!$store.net.offline && $store.net.pending > 0" class="net-btn net-btn-primary"
+                        @click="$store.net.sync()" :disabled="$store.net.syncing"
+                        x-text="$store.net.syncing ? 'Syncing…' : 'Sync now'"></button>
+                    <button type="button" class="net-btn net-btn-ghost" @click="$store.net.open = false">Close</button>
+                </div>
+            </div>
         </div>
     </div>
 

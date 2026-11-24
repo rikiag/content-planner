@@ -105,19 +105,63 @@
 .net-msg b { font-weight: 800; margin-right: .25rem; }
 .net-long { opacity: .92; }
 .net-count { flex: none; padding: .2rem .55rem; border-radius: 999px; background: rgba(255,255,255,.2); font-weight: 700; font-size: .7rem; }
-.net-btn { flex: none; font: inherit; font-size: .72rem; font-weight: 700; color: var(--net-bg); background: #fff; border: 0; border-radius: 999px; padding: .35rem .75rem; cursor: pointer; }
-.net-btn:disabled { opacity: .7; cursor: progress; }
+.net-btn { flex: none; font: inherit; font-size: .72rem; font-weight: 700; color: var(--net-bg); background: #fff; border: 0; border-radius: 999px; padding: .38rem .85rem; cursor: pointer; transition: transform .12s ease, opacity .15s ease, background-color .15s ease; }
+.net-btn:hover { opacity: .92; }
+.net-btn:active { transform: scale(.97); }
+.net-btn:disabled { opacity: .65; cursor: progress; }
 .net-btn:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+.net-btn-primary { color: #fff; background: var(--c-brand); }
 .net-btn-ghost { color: var(--c-ink); background: var(--c-soft); }
-.net-panel { max-width: 34rem; margin: 0 auto .75rem; padding: .9rem; border-radius: 1.25rem; background: var(--c-surface); color: var(--c-ink);
-  box-shadow: 0 18px 40px -12px rgba(0,0,0,.45); max-height: 60vh; overflow-y: auto; }
-.net-note { margin: 0 0 .6rem; font-size: .72rem; color: var(--c-muted); line-height: 1.5; }
-.net-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .4rem; }
-.net-item { display: flex; align-items: center; gap: .5rem; padding: .55rem .7rem; border-radius: .9rem; background: var(--c-soft2); }
-.net-item .net-btn:not(.net-btn-ghost) { color: #fff; background: var(--c-brand); }
-.net-item-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
-.net-item-main b { font-size: .78rem; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-.net-item-main small { font-size: .68rem; color: var(--c-muted); }
+.net-btn-ghost:hover { background: var(--c-line); opacity: 1; }
+.net-modal-backdrop { position: fixed; inset: 0; z-index: 85; display: grid; place-items: center; padding: 1rem;
+  background: rgba(15, 23, 42, .55); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+.net-panel { width: 100%; max-width: 34rem; max-height: 85dvh; display: flex; flex-direction: column; overflow: hidden;
+  border-radius: 1.5rem; background: var(--c-surface); color: var(--c-ink); border: 1px solid var(--c-line);
+  box-shadow: 0 24px 60px -15px rgba(15, 23, 42, .45); }
+.net-modal-head { display: flex; align-items: center; justify-content: space-between; gap: .75rem; padding: 1.1rem 1.25rem;
+  border-bottom: 1px solid var(--c-line); }
+.net-modal-title-wrap { display: flex; align-items: center; gap: .75rem; min-width: 0; }
+.net-modal-icon { flex: none; width: 2.5rem; height: 2.5rem; border-radius: .9rem; display: grid; place-items: center;
+  background: var(--c-brand-soft); color: var(--c-brand); }
+.net-modal-icon.is-off { background: rgba(217, 119, 6, .14); color: #d97706; }
+.net-modal-icon.is-warn { background: rgba(225, 29, 72, .14); color: #e11d48; }
+.net-modal-icon.is-ok { background: rgba(5, 150, 105, .14); color: #059669; }
+.net-modal-title { margin: 0; font-size: 1rem; font-weight: 800; line-height: 1.25; }
+.net-modal-sub { margin: .15rem 0 0; font-size: .75rem; color: var(--c-muted); }
+.net-text-err { color: #e11d48; font-weight: 700; }
+.net-close { flex: none; width: 2rem; height: 2rem; border-radius: 999px; border: 0; background: var(--c-soft2); color: var(--c-muted);
+  font-size: .85rem; font-weight: 700; cursor: pointer; display: grid; place-items: center; transition: background-color .15s ease, color .15s ease; }
+.net-close:hover { background: var(--c-soft); color: var(--c-ink); }
+.net-modal-body { padding: 1rem 1.25rem; overflow-y: auto; display: flex; flex-direction: column; gap: .85rem; }
+.net-callout { display: flex; align-items: flex-start; gap: .6rem; padding: .75rem .9rem; border-radius: 1rem;
+  background: var(--c-soft2); border: 1px solid var(--c-line); }
+.net-callout-ic { flex: none; margin-top: .1rem; color: var(--c-brand); }
+.net-note { margin: 0; font-size: .74rem; color: var(--c-muted); line-height: 1.5; }
+.net-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .5rem; }
+.net-item { display: flex; align-items: center; gap: .75rem; padding: .75rem .85rem; border-radius: 1rem;
+  background: var(--c-soft2); border: 1px solid var(--c-line); transition: border-color .15s ease; }
+.net-item.is-failed { border-color: rgba(225, 29, 72, .35); background: rgba(225, 29, 72, .05); }
+.net-item-dot { flex: none; width: .55rem; height: .55rem; border-radius: 999px; background: #d97706; box-shadow: 0 0 0 3px rgba(217, 119, 6, .18); }
+.net-item.is-failed .net-item-dot { background: #e11d48; box-shadow: 0 0 0 3px rgba(225, 29, 72, .18); }
+.net-item-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: .2rem; }
+.net-item-top { display: flex; align-items: center; gap: .45rem; min-width: 0; }
+.net-item-top b { font-size: .82rem; font-weight: 700; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.net-badge { flex: none; font-size: .65rem; font-weight: 800; padding: .12rem .5rem; border-radius: 999px; letter-spacing: .01em; }
+.net-badge.is-wait { background: rgba(217, 119, 6, .15); color: #b45309; }
+.net-badge.is-err { background: rgba(225, 29, 72, .15); color: #be123c; }
+.dark .net-badge.is-wait { color: #fbbf24; }
+.dark .net-badge.is-err { color: #fda4af; }
+.net-item-meta { font-size: .7rem; color: var(--c-muted); }
+.net-item-err { margin: .15rem 0 0; font-size: .72rem; color: #be123c; font-weight: 600; line-height: 1.35; }
+.dark .net-item-err { color: #fda4af; }
+.net-item-actions { display: flex; align-items: center; gap: .35rem; flex: none; }
+.net-empty { text-align: center; padding: 1.5rem 1rem; font-size: .8rem; color: var(--c-muted); border-radius: 1rem; border: 1px dashed var(--c-line); }
+.net-modal-foot { display: flex; align-items: center; justify-content: flex-end; gap: .5rem; padding: .85rem 1.25rem;
+  border-top: 1px solid var(--c-line); background: var(--c-soft2); }
+@media (max-width: 520px) {
+  .net-item { flex-wrap: wrap; }
+  .net-item-actions { width: 100%; justify-content: flex-end; padding-top: .25rem; }
+}
 body.has-net-bar { padding-top: calc(2.75rem + env(safe-area-inset-top)); }
 body.has-net-bar .app-header { top: calc(2.75rem + env(safe-area-inset-top)); }
 @media (max-width: 639px) { .net-long { display: none; } .net-bar-row { padding: 0 .75rem; gap: .4rem; } }
